@@ -1,0 +1,71 @@
+{% load calibra %}<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Hoja de vida {{ e.codigo }}</title><link rel="icon" href="data:,">
+<style>
+@page{size:A4;margin:16mm 14mm 18mm;@bottom-left{content:"CalibraLab · Hoja de vida {{ e.codigo }} · generada el {{ generado|date:'Y-m-d H:i' }}";font-size:8pt;color:#64748b}@bottom-right{content:"Página " counter(page) " de " counter(pages);font-size:8pt;color:#64748b}}
+body{font-family:"DejaVu Sans",Arial,sans-serif;font-size:9pt;color:#0f172a;line-height:1.35;max-width:900px;margin:0 auto}
+h1{font-size:16pt;margin:0 0 2px}h2{font-size:11pt;margin:16px 0 6px;padding-bottom:3px;border-bottom:2px solid #0f766e;color:#0f766e}
+.sub{color:#475569;margin:0 0 10px}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #cbd5e1;padding-bottom:8px;margin-bottom:6px}
+.marca{font-weight:700;color:#0f766e;font-size:10pt}
+.estado{border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;text-align:right}
+.estado b{display:block;font-size:11pt}
+table{width:100%;border-collapse:collapse;margin-top:4px;page-break-inside:auto}
+th,td{border:1px solid #cbd5e1;padding:3px 5px;text-align:left;vertical-align:top}
+th{background:#f1f5f9;font-weight:700}
+tr{page-break-inside:avoid}
+table.ficha th{width:22%}table.ficha td{width:28%}
+.vacio{color:#64748b;font-style:italic}
+.na{color:#b91c1c;font-weight:700}.ok{color:#047857;font-weight:700}
+.puntos{font-size:8pt;margin:2px 0 0}
+.puntos td,.puntos th{padding:2px 4px}
+</style></head>
+<body>
+<div class="cab"><div><div class="marca">CalibraLab · Hoja de vida del equipo</div><h1>{{ e.codigo }} · {{ e.descripcion }}</h1>
+<p class="sub">{{ e.marca|default:"" }} {{ e.modelo }}{% if e.numero_serie %} · serie {{ e.numero_serie }}{% endif %}</p></div>
+<div class="estado">Estado de calibración<b>{{ estado_txt }}</b>{% if e.proxima %}próxima: {{ e.proxima|date:"Y-m-d" }}{% endif %}</div></div>
+
+<h2>Ficha</h2>
+<table class="ficha">
+<tr><th>Código interno</th><td>{{ e.codigo }}</td><th>N.º de patrimonio</th><td>{{ e.patrimonio|default:"—" }}</td></tr>
+<tr><th>Marca y modelo</th><td>{{ e.marca|default:"—" }} {{ e.modelo }}</td><th>N.º de serie</th><td>{{ e.numero_serie|default:"—" }}</td></tr>
+<tr><th>Ubicación</th><td>{{ e.ubicacion|default:"—" }}</td><th>Responsable</th><td>{{ e.responsable }}</td></tr>
+<tr><th>Estado del equipo</th><td>{{ e.get_estado_display }}</td><th>Criticidad</th><td>{{ e.get_criticidad_display }}</td></tr>
+<tr><th>Rango</th><td>{% if e.rango_min is not None or e.rango_max is not None %}{{ e.rango_min|num }} a {{ e.rango_max|num }} {{ e.unidad }}{% else %}—{% endif %}</td><th>Resolución</th><td>{% if e.resolucion is not None %}{{ e.resolucion|num }} {{ e.unidad }}{% else %}—{% endif %}</td></tr>
+<tr><th>Capacidad / alcance</th><td>{% if e.capacidad is not None %}{{ e.capacidad|num }} {{ e.unidad }}{% else %}—{% endif %}</td><th>Intervalo de calibración</th><td>{{ e.intervalo_meses }} meses</td></tr>
+{% if e.asignado_a %}<tr><th>Instrumento de</th><td colspan="3">{{ e.asignado_a.codigo }} · {{ e.asignado_a.descripcion }}</td></tr>{% endif %}
+{% if e.observaciones %}<tr><th>Observaciones</th><td colspan="3">{{ e.observaciones }}</td></tr>{% endif %}
+</table>
+{% if puntos %}<table class="puntos"><tr><th>Punto de calibración</th>{% for p in puntos %}<td>{{ p.valor_nominal|num }} {{ e.unidad|default:"" }}</td>{% endfor %}</tr>
+<tr><th>EMP</th>{% for p in puntos %}<td>{{ p.emp_texto }}</td>{% endfor %}</tr></table>{% endif %}
+
+<h2>Calibraciones, calificaciones y certificaciones</h2>
+{% if servicios %}<table><thead><tr><th>Fecha</th><th>Servicio</th><th>Certificado</th><th>Proveedor</th><th>Resultado</th><th>Próxima / vigencia</th><th>Registró</th></tr></thead><tbody>
+{% for s in servicios %}<tr><td>{{ s.fecha|date:"Y-m-d" }}</td><td>{{ s.get_tipo_display }}</td><td>{{ s.numero_certificado }}</td><td>{{ s.proveedor }}</td>
+<td class="{% if s.conforme %}ok{% else %}na{% endif %}">{{ s.dictamen }}</td>
+<td>{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"—" }}{% if s.justificacion_proxima %}<br><small>{{ s.justificacion_proxima }}</small>{% endif %}{% else %}{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}{% endif %}</td>
+<td>{{ s.registrado_por }}</td></tr>
+{% if s.es_calibracion and s.puntos.all %}<tr><td></td><td colspan="6"><table class="puntos"><tr><th>Referencia</th><th>Error</th><th>U</th><th>EMP</th><th>Cumple</th></tr>
+{% for p in s.puntos.all %}<tr><td>{{ p.valor_referencia|num }}</td><td>{{ p.error|num }}</td><td>{{ p.incertidumbre|num }}</td><td>± {{ p.emp_aplicado|num }}</td><td>{{ p.cumple|yesno:"Sí,No,—" }}</td></tr>{% endfor %}</table></td></tr>{% endif %}
+{% endfor %}</tbody></table>{% else %}<p class="vacio">Sin servicios registrados.</p>{% endif %}
+
+{% if decisiones or evaluaciones %}<h2>Resultados no aptos: decisiones y evaluación del efecto</h2><table><thead><tr><th>Calibración</th><th>Decisión</th><th>Fuera de tolerancia desde</th><th>Evaluación del efecto</th></tr></thead><tbody>
+{% for d in decisiones %}<tr><td>{{ d.servicio.fecha|date:"Y-m-d" }} · {{ d.servicio.numero_certificado }}</td><td>{{ d.get_decision_display }}{% if d.justificacion %}: {{ d.justificacion }}{% endif %} ({{ d.decidido_por }})</td>
+<td>{{ d.fuera_tolerancia_desde|date:"Y-m-d"|default:"—" }}</td>
+<td>{% with ev=d.servicio.evaluacion %}{% if ev %}{{ ev.get_conclusion_display }} ({{ ev.fecha|date:"Y-m-d" }}){% if ev.acciones %}: {{ ev.acciones }}{% endif %}{% else %}<span class="na">Pendiente</span>{% endif %}{% endwith %}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+
+<h2>Mantenimiento</h2>
+{% if planes_mant %}<table><thead><tr><th>Tarea programada</th><th>Frecuencia</th><th>Responsable</th><th>Activa</th></tr></thead><tbody>
+{% for t in planes_mant %}<tr><td>{{ t.actividad }}</td><td>cada {{ t.frecuencia_meses }} mes{{ t.frecuencia_meses|pluralize:"es" }}</td><td>{{ t.responsable }}</td><td>{{ t.activo|yesno:"Sí,No" }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+{% if novedades %}<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Resultado o acciones</th><th>Responsable</th></tr></thead><tbody>
+{% for n in novedades %}<tr><td>{{ n.fecha|date:"Y-m-d" }}</td><td>{{ n.get_tipo_display }}</td><td>{{ n.descripcion }}</td><td>{{ n.resultado|default:"—" }}</td><td>{{ n.responsable }}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p class="vacio">Sin mantenimientos ni novedades registrados.</p>{% endif %}
+
+<h2>Cambios de estado</h2>
+{% if cambios %}<table><thead><tr><th>Fecha</th><th>De</th><th>A</th><th>Motivo</th><th>Decidió</th></tr></thead><tbody>
+{% for c in cambios %}<tr><td>{{ c.fecha|date:"Y-m-d" }}</td><td>{{ c.get_estado_anterior_display }}</td><td>{{ c.get_estado_nuevo_display }}</td><td>{{ c.motivo }}</td><td>{{ c.usuario }}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p class="vacio">Sin cambios de estado.</p>{% endif %}
+
+{% if documentos %}<h2>Documentos adjuntos</h2><table><thead><tr><th>Tipo</th><th>Título</th><th>Subido</th></tr></thead><tbody>
+{% for d in documentos %}<tr><td>{{ d.get_tipo_display }}</td><td>{{ d.titulo }}</td><td>{{ d.creado|date:"Y-m-d" }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</body></html>

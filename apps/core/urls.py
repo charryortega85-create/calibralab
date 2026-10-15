@@ -6,4 +6,5 @@ app_name = "core"
 
 urlpatterns = [
     path("", views.inicio, name="inicio"),
+    path("archivos/<path:ruta>", views.archivo, name="archivo"),
 ]

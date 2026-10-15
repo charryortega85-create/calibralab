@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Ejecución y presupuesto{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'reportes:indice' %}">Reportes</a></div><h1>Ejecución por lote y avance presupuestario</h1>
+{% if plan %}<p><a class="link" href="{{ plan.get_absolute_url }}">{{ plan }}</a>{% if plan.descripcion %} · {{ plan.descripcion }}{% endif %}</p>{% endif %}</div>
+{% if plan %}<div class="actions"><a class="btn" href="?plan={{ plan.pk }}&formato=xlsx">Exportar a Excel</a><a class="btn" href="?plan={{ plan.pk }}&formato=csv">CSV ejecución</a><a class="btn" href="?plan={{ plan.pk }}&formato=csv&hoja=presupuesto">CSV presupuesto</a></div>{% endif %}</div>
+{% if planes %}<form method="get" class="filters"><div class="field"><label for="plan">Plan anual</label><select id="plan" name="plan">{% for p in planes %}<option value="{{ p.pk }}"{% if p == plan %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></div><button class="btn" type="submit">Ver</button></form>{% endif %}
+{% if not plan %}<div class="card"><div class="card-b"><p class="empty">Todavía no hay planes anuales.</p></div></div>{% else %}
+<div class="stack">
+<div class="status-row"><div class="status-box"><small>Avance del plan</small><b>{{ a.ejecutados }} de {{ a.programados }} lotes · {{ a.pct_plan }} %</b></div>
+<div class="status-box"><small>Previsto</small><b>{{ a.previsto|guaranies }}</b></div>
+<div class="status-box"><small>Pagado</small><b>{{ a.pagado|guaranies }} · {{ a.pct_presupuesto }} %</b></div></div>
+<div class="card"><div class="card-h"><div><h2>Ejecución por lote</h2></div></div><div class="table-wrap"><table class="tbl"><thead><tr>{% for h in enc_ejecucion %}<th>{{ h }}</th>{% endfor %}</tr></thead><tbody>
+{% for f in ejecucion %}<tr><td><span class="code">{{ f.0 }}</span></td><td>{{ f.1 }}</td><td>{{ f.2 }}</td><td>{{ f.3|capfirst }}</td><td class="nw">{{ f.4|guaranies }}</td><td>{{ f.5|default:"—" }}</td><td>{{ f.6 }}</td><td>{{ f.7|default:"—" }}</td><td class="nw">{{ f.8|date:"Y-m-d"|default:"—" }}</td><td>{{ f.9 }}</td><td class="nw">{{ f.10|guaranies }}</td></tr>
+{% empty %}<tr><td colspan="11" class="empty">El plan no tiene lotes programados.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-h"><div><h2>Avance presupuestario por mes</h2><p>Lo pagado frente a lo previsto, acumulado mes a mes.</p></div></div><div class="table-wrap"><table class="tbl"><thead><tr>{% for h in enc_presupuesto %}<th>{{ h }}</th>{% endfor %}</tr></thead><tbody>
+{% for f in presupuesto %}<tr><td>{{ f.0 }}</td><td>{{ f.1 }}</td><td>{{ f.2 }}</td><td class="nw">{{ f.3|guaranies }}</td><td class="nw">{{ f.4|guaranies }}</td><td class="nw">{{ f.5|guaranies }}</td><td class="nw">{{ f.6|guaranies }}</td>
+<td><div class="meter-bar" style="min-width:100px"><i style="width:{{ f.7|stringformat:'s' }}%"></i></div><span class="cell-sub">{{ f.7 }} %</span></td></tr>
+{% empty %}<tr><td colspan="8" class="empty">Sin montos previstos.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>{% endif %}
+{% endblock %}

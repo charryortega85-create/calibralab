@@ -1,0 +1,3 @@
+<form method="get" class="filters"><div class="field"><label for="estado">Estado de calibración</label><select id="estado" name="estado"><option value="">Todos</option>{% for v, t in estados %}<option value="{{ v }}"{% if v == filtro %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+<label class="check"><input type="checkbox" name="baja" value="1"{% if baja %} checked{% endif %}> Incluir equipos dados de baja</label>
+<button class="btn" type="submit">Filtrar</button></form>

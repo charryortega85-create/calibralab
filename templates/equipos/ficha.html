@@ -1,0 +1,96 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}{{ e.codigo }}{% endblock %}
+{% block contenido %}
+<div class="page-head">
+  <div><div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> / {{ e.codigo }}</div>
+  <h1>{{ e.codigo }} · {{ e.descripcion }}</h1>
+  <p>{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }} · {{ e.ubicacion }}</p></div>
+  <div class="actions">
+    <a class="btn" href="{% url 'reportes:hoja_vida' e.pk %}">Hoja de vida (PDF)</a>
+    <a class="btn" href="{% url 'equipos:etiqueta' e.pk %}">Etiqueta QR</a>
+    {% if user.puede_editar %}
+    <a class="btn" href="{% url 'equipos:editar' e.pk %}">Editar</a>
+    <a class="btn" href="{% url 'equipos:estado' e.pk %}">Cambiar estado</a>
+    {% if not e.de_baja %}<a class="btn primary" href="{% url 'servicios:crear' %}?equipo={{ e.pk }}">{% icono "i-plus" %}Registrar servicio</a>{% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="stack">
+  {# Tres datos distintos que no se deben confundir (II.1.4) #}
+  <div class="status-row">
+    <div class="status-box"><small>Estado de calibración</small>{{ e.estado_cal|estado_cal }}
+      <span class="sub">{% if e.proxima %}Próxima: {{ e.proxima|date:"Y-m-d" }} ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin calibración conforme{% endif %}</span></div>
+    <div class="status-box"><small>Aptitud (última calibración)</small>{% if ultima_cal %}{{ ultima_cal|dictamen }}<span class="sub">{{ ultima_cal.fecha|date:"Y-m-d" }} · {{ ultima_cal.numero_certificado }}</span>{% else %}<span class="badge b-mute">Sin calibraciones</span>{% endif %}</div>
+    <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}<span class="sub">Criticidad: {{ e.criticidad|criticidad }}</span></div>
+    {% for v in vigencias %}
+    <div class="status-box"><small>{{ v.get_tipo_display }}</small>{{ v|dictamen }}<span class="sub">Vigente hasta {{ v.vigencia_hasta|date:"Y-m-d" }}{% if v.vigencia_hasta < hoy %} (vencida){% endif %}</span></div>
+    {% endfor %}
+  </div>
+
+  <div class="cols-2">
+    <div class="card"><div class="card-h"><div><h2>Identificación</h2></div></div><div class="card-b"><dl class="dl">
+      <div><dt>Código interno</dt><dd class="mono">{{ e.codigo }}</dd></div>
+      <div><dt>N.º de patrimonio</dt><dd>{{ e.patrimonio|default:"—" }}</dd></div>
+      <div><dt>Marca</dt><dd>{{ e.marca }}</dd></div>
+      <div><dt>Modelo</dt><dd>{{ e.modelo }}</dd></div>
+      <div><dt>N.º de serie</dt><dd>{{ e.numero_serie }}</dd></div>
+      <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
+      <div><dt>Responsable</dt><dd>{{ e.responsable }}</dd></div>
+      <div><dt>Asignado al equipo</dt><dd>{% if e.asignado_a %}<a class="link" href="{{ e.asignado_a.get_absolute_url }}">{{ e.asignado_a }}</a>{% else %}—{% endif %}</dd></div>
+      {% if instrumentos %}<div><dt>Instrumentos asignados</dt><dd>{% for i in instrumentos %}<a class="link" href="{{ i.get_absolute_url }}">{{ i.codigo }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
+      {% if lotes %}<div><dt>Lotes</dt><dd>{% for l in lotes %}<a class="link" href="{{ l.get_absolute_url }}">{{ l.codigo }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
+    </dl></div></div>
+    <div class="card"><div class="card-h"><div><h2>Ficha técnica</h2></div></div><div class="card-b"><dl class="dl">
+      <div><dt>Unidad</dt><dd>{{ e.unidad }}</dd></div>
+      <div><dt>Rango</dt><dd>{{ e.rango_min|num }} a {{ e.rango_max|num }} {{ e.unidad }}</dd></div>
+      <div><dt>Resolución</dt><dd>{{ e.resolucion|num }}</dd></div>
+      <div><dt>Capacidad o alcance</dt><dd>{{ e.capacidad|num }}</dd></div>
+      <div><dt>Tolerancia</dt><dd>{{ e.tolerancia|default:"—" }}</dd></div>
+      <div><dt>Intervalo de calibración</dt><dd>{{ e.intervalo_meses }} meses</dd></div>
+    </dl>
+    <h3 style="font-size:14px;margin:16px 0 6px">Puntos a calibrar</h3>
+    {% if puntos %}<ul class="histo">{% for p in puntos %}<li>{{ p.valor_nominal|num }} {{ e.unidad }} · EMP {{ p.emp_texto }}</li>{% endfor %}</ul>{% else %}<p class="cell-sub">Sin puntos definidos. Edita el equipo para agregarlos antes de calibrar.</p>{% endif %}
+    </div></div>
+  </div>
+
+  <div class="card" id="servicios">
+    <div class="card-h"><div><h2>Historial de servicios</h2><p>Cada servicio con el EMP y la regla usados en ese momento (RN-06).</p></div></div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Fecha</th><th>Servicio</th><th>Certificado y proveedor</th><th>Resultado</th><th>Próxima / vigencia</th><th></th></tr></thead>
+      <tbody>{% for s in servicios %}<tr>
+        <td class="nw">{{ s.fecha|date:"Y-m-d" }}</td><td>{{ s.get_tipo_display }}</td>
+        <td><span class="cell-main mono">{{ s.numero_certificado }}</span><span class="cell-sub">{{ s.proveedor }}</span></td>
+        <td>{{ s|dictamen }}</td>
+        <td class="nw">{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"Sin fecha nueva" }}{% else %}{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}{% endif %}</td>
+        <td><a class="btn sm" href="{{ s.get_absolute_url }}">Ver</a></td>
+      </tr>{% empty %}<tr><td colspan="6" class="empty">Este equipo todavía no tiene servicios registrados.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+
+  <div class="cols-2">
+    <div class="card"><div class="card-h"><div><h2>Mantenimiento y novedades</h2></div>
+      {% if user.puede_editar %}<a class="link" href="{% url 'mantenimiento:novedad_crear' e.pk %}">{% icono "i-plus" %}Registrar novedad</a>{% endif %}</div>
+      <div class="card-b">
+        {% if planes_mant %}<p class="cell-sub">Plan: {% for p in planes_mant %}{{ p }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+        {% if user.puede_editar %}<p><a class="link" href="{% url 'mantenimiento:plan_crear' e.pk %}">Agregar tarea al plan de mantenimiento</a></p>{% endif %}
+        <ul class="histo">{% for n in novedades %}<li><b>{{ n.fecha|date:"Y-m-d" }}</b> · {{ n.get_tipo_display }}: {{ n.descripcion|truncatechars:90 }} <span class="cell-sub">({{ n.responsable }})</span></li>
+        {% empty %}<li class="cell-sub">Sin novedades registradas.</li>{% endfor %}</ul>
+      </div></div>
+    <div class="card"><div class="card-h"><div><h2>Cambios de estado</h2></div></div><div class="card-b">
+      <ul class="histo">{% for c in cambios %}<li><b>{{ c.fecha|date:"Y-m-d" }}</b> · {{ c }} · {{ c.motivo }} <span class="cell-sub">({{ c.usuario }})</span></li>
+      {% empty %}<li class="cell-sub">Siempre estuvo «{{ e.get_estado_display|lower }}».</li>{% endfor %}</ul>
+    </div></div>
+  </div>
+
+  <div class="cols-2">
+    <div class="card"><div class="card-h"><div><h2>Documentos</h2></div>
+      {% if user.puede_editar %}<a class="link" href="{% url 'equipos:documento' e.pk %}">{% icono "i-plus" %}Adjuntar</a>{% endif %}</div>
+      <div class="card-b"><ul class="histo">{% for d in documentos %}<li><a class="link" href="{% url 'core:archivo' d.archivo.name %}">{{ d.titulo }}</a> · {{ d.get_tipo_display }} <span class="cell-sub">({{ d.creado|date:"Y-m-d" }})</span></li>
+      {% empty %}<li class="cell-sub">Sin documentos adjuntos.</li>{% endfor %}</ul></div></div>
+    <div class="card"><div class="card-h"><div><h2>Versiones de la ficha</h2><p>Nada se borra: cada corrección guarda la versión anterior.</p></div></div>
+      <div class="card-b"><ul class="histo">{% for v in versiones %}<li><b>{{ v.history_date|date:"Y-m-d H:i" }}</b> · {{ v.get_history_type_display }} · {{ v.history_user|default:"Sistema" }}{% if v.history_change_reason %} · «{{ v.history_change_reason }}»{% endif %}</li>{% endfor %}</ul></div></div>
+  </div>
+  {% if e.observaciones %}<div class="card"><div class="card-b"><b>Observaciones:</b> {{ e.observaciones|linebreaksbr }}</div></div>{% endif %}
+</div>
+{% endblock %}

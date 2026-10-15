@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Etiqueta {{ e.codigo }}{% endblock %}
+{% block contenido %}
+<div class="page-head no-print"><div><div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> / <a class="link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a></div>
+<h1>Etiqueta con código QR</h1><p>Al leerla con un teléfono se abre la ficha del equipo. Imprímela y pégala en el equipo.</p></div>
+<div class="actions"><button class="btn primary" type="button" onclick="window.print()">Imprimir</button></div></div>
+<div class="etiqueta-qr">
+  {{ svg|safe }}
+  <div><b>{{ e.codigo }}</b>{{ e.descripcion }}<br><small>{{ e.marca }} · S/N {{ e.numero_serie }}</small><br><small>CalibraLab · escanea para ver su estado</small></div>
+</div>
+<p class="cell-sub no-print" style="margin-top:12px">Enlace: <span class="mono">{{ url }}</span></p>
+{% endblock %}

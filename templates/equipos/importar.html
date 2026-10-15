@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Cargar equipos desde archivo{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> /</div>
+<h1>Cargar equipos desde un archivo</h1>
+<p>Descarga la <a class="link" href="{% url 'equipos:plantilla' %}">plantilla de Excel</a>, complétala y súbela. Las marcas, ubicaciones, unidades y responsables deben existir en las listas.</p></div></div>
+<div class="card"><div class="card-b">
+  <form method="post" class="form" enctype="multipart/form-data" novalidate>
+    {% include "_form.html" %}
+    <div class="form-actions"><button class="btn primary" type="submit">Revisar el archivo</button></div>
+  </form>
+</div></div>
+{% if filas %}
+<div class="card" style="margin-top:16px">
+  <div class="card-h"><div><h2>Revisión: {{ filas|length }} fila{{ filas|pluralize }}</h2>
+  <p>{% if con_errores %}{{ con_errores }} fila{{ con_errores|pluralize }} con errores. Corrige el archivo y vuelve a subirlo: no se guarda nada hasta que no haya ningún error.{% else %}Sin errores. Confirma para guardar todos los equipos juntos.{% endif %}</p></div>
+  {% if not con_errores %}<form method="post">{% csrf_token %}<button class="btn primary" name="confirmar" value="1">Guardar {{ filas|length }} equipos</button></form>{% endif %}</div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Fila</th><th>Código</th><th>Resultado</th></tr></thead><tbody>
+  {% for f in filas %}<tr><td>{{ f.numero }}</td><td class="mono">{{ f.codigo }}</td>
+    <td>{% if f.errores %}<ul class="errores">{% for e in f.errores %}<li>{{ e }}</li>{% endfor %}</ul>{% else %}<span class="badge b-ok">Correcta</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}

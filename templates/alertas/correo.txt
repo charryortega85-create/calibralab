@@ -1,0 +1,13 @@
+{% autoescape off %}Hola, {{ e.responsable.get_short_name }}:
+
+{% if tipo == "por_vencer" %}La calibración del equipo {{ e.codigo }} ({{ e.descripcion }}) vence el {{ e.proxima|date:"Y-m-d" }}, dentro de {{ dias }} día{{ dias|pluralize }}.
+Conviene coordinar la nueva calibración para que no quede vencida.{% else %}La calibración del equipo {{ e.codigo }} ({{ e.descripcion }}) VENCIÓ el {{ e.proxima|date:"Y-m-d" }}.
+No debería usarse para emitir resultados hasta registrar una nueva calibración conforme.{% endif %}
+
+Ubicación: {{ e.ubicacion }}
+Criticidad: {{ e.get_criticidad_display }}
+Ficha del equipo: {{ url }}
+
+Este aviso deja de enviarse cuando se registra la nueva calibración o el equipo se da de baja.
+
+CalibraLab · Gestión de calibraciones{% endautoescape %}

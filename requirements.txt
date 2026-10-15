@@ -1,4 +1,9 @@
 Django>=5.2,<5.3
 psycopg[binary]>=3.2
 django-axes>=8.0
+django-simple-history>=3.7
+openpyxl>=3.1
+qrcode>=8.0
+pillow>=11.0
+weasyprint>=65
 gunicorn>=23.0

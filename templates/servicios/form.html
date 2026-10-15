@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% load calibra static %}
+{% block titulo %}{% if servicio %}Corregir {{ servicio.numero_certificado }}{% else %}Registrar servicio{% endif %}{% endblock %}
+{% block contenido %}
+<div class="page-head"><div>
+  <div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> / <a class="link" href="{{ equipo.get_absolute_url }}">{{ equipo.codigo }}</a></div>
+  <h1>{% if servicio %}Corregir {{ servicio.get_tipo_display|lower }} {{ servicio.numero_certificado }}{% else %}Registrar un servicio{% endif %}</h1>
+  <p>{{ equipo }} · intervalo {{ equipo.intervalo_meses }} meses · unidad {{ equipo.unidad }}{% if servicio %}. La versión anterior se conserva con el motivo que escribas.{% endif %}</p>
+</div></div>
+<form method="post" class="stack" enctype="multipart/form-data" novalidate id="form-servicio">
+  {% csrf_token %}
+  {% for e in form.non_field_errors %}<div class="msg error" role="alert">{{ e }}</div>{% endfor %}
+  {% for titulo, campos, clase in form.grupos_de_campos %}
+  <div class="card"{% if clase %} data-para="{{ clase }}"{% endif %}><div class="card-b"><fieldset class="grupo"><legend>{{ titulo }}</legend>
+    <div class="form-grid">{% for campo in campos %}{% include "_campo.html" %}{% endfor %}</div>
+    {% if campos.0.name == "tipo" and servicio.certificado %}<p class="cell-sub" style="margin-top:8px">Certificado actual: <a class="link" href="{% url 'core:archivo' servicio.certificado.name %}">{{ servicio.certificado.name }}</a>. Si subes otro, el anterior se conserva en la versión previa.</p>{% endif %}
+  </fieldset></div></div>
+  {% if forloop.counter == 2 %}
+  <div class="card" data-para="calibracion"><div class="card-b"><fieldset class="grupo"><legend>Resultados por punto</legend>
+    <p class="cell-sub" style="margin-bottom:10px">Para cada punto, escribe el valor que marcó el equipo <b>o</b> el error que informa el certificado. El sistema calcula el error, lo compara con el EMP y marca los puntos que no cumplen (RN-04). Deja vacío un punto que no se calibró.</p>
+    {{ formset.management_form }}
+    {% for e in formset.non_form_errors %}<div class="msg error" role="alert">{{ e }}</div>{% endfor %}
+    <div class="table-wrap"><table class="tbl tbl-form">
+      <thead><tr><th>EMP</th><th>Valor de referencia</th><th>Valor que marcó el equipo</th><th>o error informado</th><th>Incertidumbre (U)</th>{% if servicio %}<th>Resultado actual</th>{% endif %}</tr></thead>
+      <tbody>{% for f in formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+        <td class="nw">{% if servicio %}{{ f.instance.get_emp_tipo_display }} {{ f.instance.emp_valor|num }}{% else %}{% with p=puntos_ficha|slice:forloop.counter|last %}{{ p.emp_texto }}{% endwith %}{% endif %}</td>
+        {% for campo in f.visible_fields %}<td><div class="field{% if campo.errors %} has-err{% endif %}"><label class="sr-only" for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{% for e in campo.errors %}<div class="err">{{ e }}</div>{% endfor %}</div></td>{% endfor %}
+        {% if servicio %}<td>{{ f.instance.cumple|cumple }}</td>{% endif %}
+      </tr>{% empty %}<tr><td colspan="6" class="empty">El equipo no tiene puntos a calibrar. <a class="link" href="{% url 'equipos:editar' equipo.pk %}">Agrégalos en la ficha</a>.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </fieldset></div></div>
+  {% endif %}
+  {% endfor %}
+  <div class="form-actions"><button class="btn primary" type="submit">{% if servicio %}Guardar la corrección{% else %}Guardar y calcular el resultado{% endif %}</button>
+    <a class="btn" href="{% if servicio %}{{ servicio.get_absolute_url }}{% else %}{{ equipo.get_absolute_url }}{% endif %}">Cancelar</a></div>
+</form>
+<script>
+/* Muestra solo los datos que corresponden al tipo de servicio elegido. */
+(function(){
+  var tipo = document.getElementById('id_tipo');
+  function aplicar(){
+    var cal = tipo.value === 'calibracion';
+    document.querySelectorAll('[data-para]').forEach(function(el){
+      el.hidden = (el.dataset.para === 'calibracion') !== cal;
+    });
+  }
+  if (tipo) { tipo.addEventListener('change', aplicar); aplicar(); }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,3 @@
+<form method="get" class="filters"><div class="field"><label for="dias">Horizonte</label><select id="dias" name="dias">{% for h in horizontes %}<option value="{{ h }}"{% if h == dias %} selected{% endif %}>{{ h }} días</option>{% endfor %}</select></div>
+<div class="field"><label for="vencidos">Vencidos</label><select id="vencidos" name="vencidos"><option value="1"{% if vencidos %} selected{% endif %}>Incluir los ya vencidos</option><option value="0"{% if not vencidos %} selected{% endif %}>Solo los que vencen</option></select></div>
+<button class="btn" type="submit">Filtrar</button></form>
