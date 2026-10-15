@@ -2,20 +2,22 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.forms import inlineformset_factory
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.catalogos.models import Proveedor
 from apps.core.exportar import exportar
+from apps.core.qr import qr_svg, url_absoluta
 from apps.cuentas.permisos import EDITORES, rol_requerido
 from apps.equipos.models import Equipo, EstadoEquipo
 
 from .calculos import DatoFaltante
-from .forms import (DecisionForm, ElegirEquipoForm, PuntoMedidoForm, PuntosFormSet, PuntosMedidosFormSet,
-                    ServicioForm)
+from .forms import (AnexoForm, DecisionForm, ElegirEquipoForm, PuntoMedidoForm, PuntosFormSet, PuntosMedidosFormSet,
+                    ServicioForm, patrones_formset)
 from .models import Decision, PuntoMedido, Resultado, Servicio, TipoServicio
 
 
@@ -24,11 +26,19 @@ def _datos_iniciales(equipo):
     return list(equipo.puntos.filter(activo=True).order_by("orden", "valor_nominal"))
 
 
-def _pantalla(request, form, formset, equipo, servicio=None):
+def _pantalla(request, form, formset, equipo, servicio=None, patrones=None):
     return render(request, "servicios/form.html", {
-        "form": form, "formset": formset, "equipo": equipo, "servicio": servicio,
+        "form": form, "formset": formset, "equipo": equipo, "servicio": servicio, "patrones": patrones,
         "puntos_ficha": _datos_iniciales(equipo) if servicio is None else None,
     })
+
+
+def _guardar_patrones(formset, servicio, motivo=""):
+    for p in formset.save(commit=False):
+        p.servicio = servicio
+        if motivo:
+            p._change_reason = motivo
+        p.save()
 
 
 def _despues_de_guardar(request, servicio):
@@ -57,7 +67,8 @@ def crear(request):
                                        extra=len(puntos), can_delete=False)
     formset = PuntosAlta(request.POST or None, instance=Servicio(), prefix="puntos",
                          initial=[{"valor_referencia": f"{p.valor_nominal.normalize():f}"} for p in puntos])
-    if request.method == "POST" and form.is_valid():
+    patrones = patrones_formset(3)(request.POST or None, instance=Servicio(), prefix="patrones")
+    if request.method == "POST" and form.is_valid() and patrones.is_valid():
         es_cal = form.cleaned_data["tipo"] == TipoServicio.CALIBRACION
         if es_cal and not puntos:
             form.add_error(None, "El equipo no tiene puntos a calibrar con su EMP. Agrégalos en la ficha del equipo.")
@@ -67,6 +78,7 @@ def crear(request):
                     servicio = form.save(commit=False)
                     servicio.equipo, servicio.registrado_por = equipo, request.user
                     servicio.save()
+                    _guardar_patrones(patrones, servicio)
                     if es_cal:
                         for i, f in enumerate(formset.forms):
                             if not f.tiene_datos():
@@ -80,7 +92,7 @@ def crear(request):
                 return _despues_de_guardar(request, servicio)
             except DatoFaltante as e:
                 form.add_error(None, str(e))
-    return _pantalla(request, form, formset, equipo)
+    return _pantalla(request, form, formset, equipo, patrones=patrones)
 
 
 @rol_requerido(*EDITORES)
@@ -89,11 +101,14 @@ def corregir(request, pk):
     servicio = get_object_or_404(Servicio.objects.select_related("equipo"), pk=pk)
     form = ServicioForm(request.POST or None, request.FILES or None, instance=servicio, equipo=servicio.equipo)
     formset = PuntosFormSet(request.POST or None, instance=servicio, prefix="puntos")
-    if request.method == "POST" and form.is_valid() and (not servicio.es_calibracion or formset.is_valid()):
+    patrones = patrones_formset(1)(request.POST or None, instance=servicio, prefix="patrones")
+    if (request.method == "POST" and form.is_valid() and patrones.is_valid()
+            and (not servicio.es_calibracion or formset.is_valid())):
         try:
             with transaction.atomic():
                 motivo = form.cleaned_data["motivo"]
                 servicio = form.save()
+                _guardar_patrones(patrones, servicio, motivo)
                 if servicio.es_calibracion:
                     for p in formset.save(commit=False):
                         p._change_reason = motivo
@@ -104,7 +119,7 @@ def corregir(request, pk):
             return _despues_de_guardar(request, servicio)
         except DatoFaltante as e:
             form.add_error(None, str(e))
-    return _pantalla(request, form, formset, servicio.equipo, servicio)
+    return _pantalla(request, form, formset, servicio.equipo, servicio, patrones)
 
 
 @login_required
@@ -175,3 +190,107 @@ def lista(request):
         "pagina": pagina, "f": f, "consulta": consulta.urlencode(), "tipos": TipoServicio.choices,
         "resultados": Resultado.choices, "proveedores": Proveedor.objects.all(),
     })
+
+
+# --- Archivo de certificados y consulta por QR -----------------------------------------------------------
+
+def _es_imagen(nombre):
+    return nombre.rsplit(".", 1)[-1].lower() in ("jpg", "jpeg", "png", "webp")
+
+
+@login_required
+def certificado(request, pk):
+    """El certificado archivado, listo para verlo en el teléfono al escanear su QR."""
+    s = get_object_or_404(Servicio.objects.select_related("equipo__unidad", "equipo__marca", "proveedor",
+                                                          "registrado_por"), pk=pk)
+    archivos = []
+    if s.certificado:
+        archivos.append({"titulo": "Certificado", "nombre": s.certificado.name, "imagen": _es_imagen(s.certificado.name)})
+    for a in s.anexos.all():
+        archivos.append({"titulo": a.titulo, "nombre": a.archivo.name, "imagen": _es_imagen(a.archivo.name)})
+    url = url_absoluta(reverse("servicios:certificado", args=[s.pk]))
+    form = AnexoForm() if request.user.puede_editar else None
+    return render(request, "servicios/certificado.html", {
+        "s": s, "archivos": archivos, "patrones": s.patrones.all(), "qr": qr_svg(url), "url": url, "form": form,
+        "vigente": s == Servicio.objects.filter(equipo=s.equipo, tipo=s.tipo).order_by("-fecha", "-pk").first(),
+    })
+
+
+@rol_requerido(*EDITORES)
+def anexo(request, pk):
+    s = get_object_or_404(Servicio, pk=pk)
+    form = AnexoForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        a = form.save(commit=False)
+        a.servicio, a.subido_por = s, request.user
+        a.save()
+        messages.success(request, f"Se agregó «{a.titulo}» al certificado {s.numero_certificado}.")
+        return redirect("servicios:certificado", pk=s.pk)
+    return render(request, "core/form.html", {
+        "form": form, "titulo": f"Agregar una página al certificado {s.numero_certificado}",
+        "subtitulo": "Por ejemplo, la foto o el PDF de otra hoja del certificado.",
+        "migas": [("Certificados", reverse("servicios:certificados")),
+                  (s.numero_certificado, reverse("servicios:certificado", args=[s.pk]))],
+        "volver": reverse("servicios:certificado", args=[s.pk]), "boton": "Agregar",
+    })
+
+
+@login_required
+def certificados(request):
+    """Archivo de certificados: buscar, ver y descargar todos juntos para una auditoría."""
+    g = request.GET
+    f = {k: g.get(k, "").strip() for k in ("q", "tipo", "proveedor", "anio", "vigentes")}
+    qs = Servicio.objects.select_related("equipo", "proveedor").prefetch_related("anexos")
+    if f["q"]:
+        qs = qs.filter(Q(equipo__codigo__icontains=f["q"]) | Q(equipo__descripcion__icontains=f["q"]) |
+                       Q(numero_certificado__icontains=f["q"]) | Q(patrones__identificacion__icontains=f["q"]) |
+                       Q(patrones__certificado__icontains=f["q"])).distinct()
+    if f["tipo"] in TipoServicio.values:
+        qs = qs.filter(tipo=f["tipo"])
+    if f["proveedor"].isdigit():
+        qs = qs.filter(proveedor_id=f["proveedor"])
+    if f["anio"].isdigit():
+        qs = qs.filter(fecha__year=int(f["anio"]))
+    if f["vigentes"] == "1":
+        # El último certificado de cada equipo y tipo de servicio
+        ultimos = Servicio.objects.filter(equipo=OuterRef("equipo"), tipo=OuterRef("tipo")).order_by("-fecha", "-pk")
+        qs = qs.filter(pk=Subquery(ultimos.values("pk")[:1]))
+    if g.get("formato") == "zip":
+        return _zip_certificados(qs)
+    pagina = Paginator(qs, 25).get_page(g.get("page"))
+    consulta = g.copy()
+    consulta.pop("page", None)
+    anios = Servicio.objects.dates("fecha", "year", order="DESC")
+    return render(request, "servicios/certificados.html", {
+        "pagina": pagina, "f": f, "consulta": consulta.urlencode(), "tipos": TipoServicio.choices,
+        "proveedores": Proveedor.objects.all(), "anios": [d.year for d in anios],
+    })
+
+
+def _zip_certificados(qs):
+    """Todos los archivos de los certificados filtrados en un ZIP, ordenados por equipo."""
+    import zipfile
+    from io import BytesIO
+    from pathlib import Path
+
+    buf = BytesIO()
+    usados = set()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for s in qs:
+            archivos = ([s.certificado] if s.certificado else []) + [a.archivo for a in s.anexos.all()]
+            for i, archivo in enumerate(archivos):
+                try:
+                    with archivo.open("rb") as fh:
+                        datos = fh.read()
+                except FileNotFoundError:
+                    continue
+                ext = Path(archivo.name).suffix
+                nombre = f"{s.equipo.codigo}/{s.fecha:%Y-%m-%d}_{s.numero_certificado}" + (f"_{i}" if i else "") + ext
+                nombre = nombre.replace(" ", "_")
+                if nombre in usados:
+                    nombre = nombre.replace(ext, f"_{s.pk}{ext}")
+                usados.add(nombre)
+                z.writestr(nombre, datos)
+    r = HttpResponse(buf.getvalue(), content_type="application/zip")
+    r["Content-Disposition"] = f'attachment; filename="certificados_{timezone.localdate():%Y-%m-%d}.zip"'
+    return r

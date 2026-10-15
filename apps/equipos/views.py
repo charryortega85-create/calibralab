@@ -1,8 +1,5 @@
 from io import BytesIO
 
-import qrcode
-import qrcode.image.svg
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -16,6 +13,7 @@ from django.utils import timezone
 from apps.alertas.estado import con_estado
 from apps.catalogos.models import Marca, Ubicacion
 from apps.core.exportar import exportar, libro_excel
+from apps.core.qr import qr_svg, url_absoluta
 from apps.cuentas.models import Configuracion, Usuario
 from apps.cuentas.permisos import EDITORES, rol_requerido
 from apps.servicios.calculos import Estado
@@ -172,12 +170,8 @@ def subir_documento(request, pk):
 def etiqueta(request, pk):
     """RF-14: etiqueta con código QR que abre la ficha del equipo."""
     equipo = get_object_or_404(con_estado(Equipo.objects.all()), pk=pk)
-    url = settings.URL_SISTEMA.rstrip("/") + equipo.get_absolute_url()
-    img = qrcode.make(url, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=1)
-    buf = BytesIO()
-    img.save(buf)
-    svg = buf.getvalue().decode()
-    svg = svg[svg.find("<svg"):]
+    url = url_absoluta(equipo.get_absolute_url())
+    svg = qr_svg(url)
     return render(request, "equipos/etiqueta.html", {"e": equipo, "svg": svg, "url": url,
                                                       "estado_txt": Estado.ETIQUETAS[equipo.estado_cal]})
 

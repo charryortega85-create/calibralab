@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 
 @login_required
@@ -26,6 +27,7 @@ def no_encontrado(request, exception=None):
 
 
 @login_required
+@xframe_options_sameorigin
 def archivo(request, ruta):
     """Los certificados y documentos solo se ven con la sesión iniciada (RNF-03)."""
     from pathlib import Path

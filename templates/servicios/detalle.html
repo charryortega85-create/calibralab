@@ -6,7 +6,7 @@
   <h1>{{ s.get_tipo_display }} {{ s.numero_certificado }}</h1>
   <p>{{ s.equipo }} · {{ s.fecha|date:"Y-m-d" }} · {{ s.proveedor }}</p></div>
   <div class="actions">
-    {% if s.certificado %}<a class="btn" href="{% url 'core:archivo' s.certificado.name %}">Ver el certificado</a>{% endif %}
+    <a class="btn" href="{% url 'servicios:certificado' s.pk %}">{% icono "i-eye" %}Certificado y QR</a>
     {% if user.puede_editar %}<a class="btn" href="{% url 'servicios:corregir' s.pk %}">Corregir</a>{% endif %}
   </div>
 </div>
@@ -49,6 +49,9 @@
   <div class="cols-2">
     <div class="card"><div class="card-h"><div><h2>Datos del servicio</h2></div></div><div class="card-b"><dl class="dl">
       <div><dt>Trazabilidad declarada</dt><dd>{{ s.trazabilidad|default:"—" }}</dd></div>
+      <div><dt>Lugar y condiciones</dt><dd>{{ s.lugar|default:"—" }}{% if s.temperatura_ambiente is not None %} · {{ s.temperatura_ambiente|num }} °C{% endif %}{% if s.humedad_relativa is not None %} · {{ s.humedad_relativa|num }} % HR{% endif %}</dd></div>
+      <div><dt>Procedimiento</dt><dd>{{ s.procedimiento|default:"—" }}</dd></div>
+      <div><dt>Realizado / autorizado por</dt><dd>{{ s.realizado_por|default:"—" }} / {{ s.autorizado_por|default:"—" }}</dd></div>
       <div><dt>Ajustes realizados</dt><dd>{{ s.ajustes|default:"—" }}</dd></div>
       {% if not s.es_calibracion %}<div><dt>Criterios de aceptación</dt><dd>{{ s.criterios_aceptacion|default:"—" }}</dd></div>{% endif %}
       <div><dt>Observaciones</dt><dd>{{ s.observaciones|default:"—" }}</dd></div>

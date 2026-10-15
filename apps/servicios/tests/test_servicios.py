@@ -20,7 +20,8 @@ def pdf():
 def datos_calibracion(proveedor, lecturas, **extra):
     datos = {"tipo": "calibracion", "fecha": (timezone.localdate() - timedelta(days=1)).isoformat(),
              "proveedor": proveedor.pk, "numero_certificado": "CC-2026-0001", "regla": "simple",
-             "certificado": pdf(), "puntos-TOTAL_FORMS": len(lecturas), "puntos-INITIAL_FORMS": 0}
+             "certificado": pdf(), "puntos-TOTAL_FORMS": len(lecturas), "puntos-INITIAL_FORMS": 0,
+             "patrones-TOTAL_FORMS": 0, "patrones-INITIAL_FORMS": 0}
     for i, (ref, leido) in enumerate(lecturas):
         datos[f"puntos-{i}-valor_referencia"] = ref
         datos[f"puntos-{i}-valor_leido"] = leido
@@ -99,7 +100,7 @@ def test_calificacion_registra_resultado_y_vigencia(cliente_de, tecnico, crear_e
     r = cliente_de(tecnico).post(f"{reverse('servicios:crear')}?equipo={e.pk}", {
         "tipo": "calificacion", "fecha": "2026-01-10", "proveedor": catalogo["proveedor"].pk,
         "numero_certificado": "CQ-1", "resultado": "conforme", "vigencia_hasta": "2027-01-10",
-        "puntos-TOTAL_FORMS": 0, "puntos-INITIAL_FORMS": 0})
+        "puntos-TOTAL_FORMS": 0, "puntos-INITIAL_FORMS": 0, "patrones-TOTAL_FORMS": 0, "patrones-INITIAL_FORMS": 0})
     assert r.status_code == 302, re.findall(r'class="(?:err|error)[^"]*"[^>]*>([^<]+)', r.content.decode())
     s = Servicio.objects.get()
     assert r.status_code == 302 and s.dictamen == "Conforme" and s.proxima_fecha is None
@@ -111,7 +112,7 @@ def test_rn07_correccion_conserva_version_y_motivo(cliente_de, tecnico, crear_eq
     p = s.puntos.order_by("orden")
     datos = {"fecha": "2026-03-09", "proveedor": catalogo["proveedor"].pk, "numero_certificado": "CC-1-BIS",
              "regla": "simple", "motivo": "Error de transcripción del certificado", "certificado": pdf(),
-             "puntos-TOTAL_FORMS": 3, "puntos-INITIAL_FORMS": 3}
+             "puntos-TOTAL_FORMS": 3, "puntos-INITIAL_FORMS": 3, "patrones-TOTAL_FORMS": 0, "patrones-INITIAL_FORMS": 0}
     for i, punto in enumerate(p):
         datos.update({f"puntos-{i}-id": punto.pk, f"puntos-{i}-valor_referencia": punto.valor_referencia,
                       f"puntos-{i}-valor_leido": punto.valor_leido})

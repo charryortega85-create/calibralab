@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.urls import reverse
 
@@ -58,6 +59,18 @@ class Servicio(ModeloVersionado):
     justificacion_proxima = models.CharField("justificación del cambio de fecha", max_length=250, blank=True)
     registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+",
                                        verbose_name="registrado por")
+    # Datos que trae el certificado (para archivarlo y consultarlo completo)
+    lugar = models.CharField("lugar de calibración", max_length=150, blank=True,
+                             help_text="Por ejemplo: en el laboratorio del proveedor o en sitio.")
+    temperatura_ambiente = models.DecimalField("temperatura ambiente (°C)", max_digits=5, decimal_places=2,
+                                               null=True, blank=True)
+    humedad_relativa = models.DecimalField("humedad relativa (%)", max_digits=5, decimal_places=2, null=True,
+                                           blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    procedimiento = models.CharField("procedimiento", max_length=200, blank=True,
+                                     help_text="Código y revisión del procedimiento del proveedor.")
+    realizado_por = models.CharField("realizado por", max_length=120, blank=True)
+    autorizado_por = models.CharField("autorizado por", max_length=120, blank=True,
+                                      help_text="Quien firma o autoriza el certificado.")
 
     class Meta:
         verbose_name = "servicio"
@@ -153,6 +166,48 @@ class PuntoMedido(ModeloVersionado):
 
     def __str__(self):
         return f"Punto {self.valor_referencia.normalize():f}"
+
+
+class PatronUtilizado(ModeloVersionado):
+    """Patrón con el que el proveedor calibró, tal como figura en el certificado (trazabilidad)."""
+
+    servicio = models.ForeignKey(Servicio, on_delete=models.PROTECT, related_name="patrones")
+    identificacion = models.CharField("identificación", max_length=60)
+    descripcion = models.CharField("descripción", max_length=150, blank=True)
+    certificado = models.CharField("certificado del patrón", max_length=60, blank=True)
+    proxima_calibracion = models.CharField("próxima calibración del patrón", max_length=7, blank=True,
+                                           validators=[RegexValidator(r"^\d{4}-(0[1-9]|1[0-2])$",
+                                                                      "Escribe el mes como AAAA-MM, por ejemplo 2027-04.")],
+                                           help_text="Mes, como AAAA-MM.")
+
+    class Meta:
+        verbose_name = "patrón utilizado"
+        verbose_name_plural = "patrones utilizados"
+        ordering = ["servicio", "id"]
+
+    def __str__(self):
+        return f"{self.identificacion} {self.descripcion}".strip()
+
+
+def ruta_anexo(instancia, nombre):
+    return f"equipos/{instancia.servicio.equipo.codigo}/certificados/{instancia.servicio.fecha:%Y-%m-%d}_anexo_{nombre}"
+
+
+class AnexoServicio(ModeloVersionado):
+    """Otras páginas o archivos del certificado (por ejemplo, la foto de cada hoja)."""
+
+    servicio = models.ForeignKey(Servicio, on_delete=models.PROTECT, related_name="anexos")
+    titulo = models.CharField("descripción", max_length=150, help_text="Por ejemplo: página 2 de 2.")
+    archivo = models.FileField("archivo", upload_to=ruta_anexo)
+    subido_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+
+    class Meta:
+        verbose_name = "anexo del certificado"
+        verbose_name_plural = "anexos del certificado"
+        ordering = ["servicio", "creado"]
+
+    def __str__(self):
+        return self.titulo
 
 
 class Decision(models.TextChoices):

@@ -20,7 +20,8 @@ from apps.equipos.models import Criticidad, Equipo, EstadoEquipo, PuntoCalibraci
 from apps.mantenimiento.models import Conclusion, EvaluacionEfecto, Novedad, PlanMantenimiento, TipoNovedad
 from apps.plan.models import EstadoEjecucion, EstadoPago, ItemPlan, Lote, PlanAnual
 from apps.servicios.calculos import sumar_meses
-from apps.servicios.models import Decision, DecisionNoApto, PuntoMedido, Resultado, Servicio, TipoServicio
+from apps.servicios.models import (Decision, DecisionNoApto, PatronUtilizado, PuntoMedido, Resultado, Servicio,
+                                   TipoServicio)
 
 RESPONSABLES = {"mp": "mperez", "lg": "lgimenez", "cb": "cbenitez", "ad": "aduarte"}
 
@@ -111,11 +112,27 @@ def fecha(texto):
     return date.fromisoformat(texto) if texto else None
 
 
+TECNICOS_PROVEEDOR = {"Proveedor X": ("Julio Benítez", "Sara Ojeda"), "Proveedor Y": ("Nora Cáceres", "Iván Rojas"),
+                      "Proveedor Z": ("Pablo Ruiz", "Elena Vera")}
+PATRONES = {
+    "masa": [("PM-01", "Juego de pesas E2", "CP-2026-0101", "2027-05")],
+    "volumen": [("PV-03", "Balanza analítica de referencia", "CP-2026-0144", "2027-02"),
+                ("PT-07", "Termómetro de agua", "CP-2026-0150", "2027-03")],
+    "temperatura": [("PT-15", "Termohigrómetro", "CP-2026-0122", "2027-04"),
+                    ("PT-79", "Termómetro digital de referencia", "CP-2026-0188", "2027-08"),
+                    ("PH-12", "Horno isotérmico", "CP-2025-0335", "2029-07")],
+}
+
+
 class Command(BaseCommand):
     help = "Carga los datos de ejemplo de la maqueta (equipos, servicios, mantenimiento, lotes y plan)."
 
+    def add_arguments(self, parser):
+        parser.add_argument("--sin-archivos", action="store_true",
+                            help="No genera los PDF de ejemplo de los certificados (más rápido).")
+
     @transaction.atomic
-    def handle(self, *args, **opciones):
+    def handle(self, *args, sin_archivos=False, **opciones):
         call_command("crear_usuarios_demo", stdout=self.stdout)
         if Equipo.objects.filter(codigo="EQ-0001").exists():
             self.stdout.write("Los datos de ejemplo ya estaban cargados.")
@@ -134,6 +151,7 @@ class Command(BaseCommand):
         self.extras(equipos)
         self.plan(equipos)
         self.avisos()
+        self.datos_certificados(generar_pdf=not sin_archivos)
         self.stdout.write(self.style.SUCCESS(f"Listo: {len(equipos)} equipos, {Servicio.objects.count()} servicios."))
 
     # ---------------------------------------------------------------------------------------------------
@@ -255,3 +273,25 @@ class Command(BaseCommand):
         Aviso.objects.filter(pk__in=[a.pk for a in enviados]).update(enviado_en=ocho)
         Aviso.objects.filter(equipo__codigo="EQ-0012", tipo=TipoAviso.VENCIDO).update(
             resultado=ResultadoEnvio.ERROR, detalle="550 Buzón del destinatario lleno")
+
+    def datos_certificados(self, generar_pdf):
+        """Completa los datos del certificado y, si se pide, genera un PDF de ejemplo para el archivo."""
+        from django.core.files.base import ContentFile
+        from django.template.loader import render_to_string
+
+        for s in Servicio.objects.select_related("equipo__unidad", "proveedor"):
+            realizo, autorizo = TECNICOS_PROVEEDOR[s.proveedor.nombre]
+            s.lugar = "En sitio, " + str(s.equipo.ubicacion) if s.equipo.criticidad == "alta" else f"Laboratorio de {s.proveedor}"
+            s.temperatura_ambiente, s.humedad_relativa = D("20.4"), D("55")
+            s.procedimiento = f"PRO-{s.equipo.unidad.magnitud[:3].upper()}-01 Rev.04"
+            s.realizado_por, s.autorizado_por = realizo, autorizo
+            s.trazabilidad = s.trazabilidad or "Patrones con trazabilidad al SI"
+            s.save()
+            for ident, desc, cert, prox in PATRONES.get(s.equipo.unidad.magnitud, PATRONES["temperatura"][:1]):
+                PatronUtilizado.objects.create(servicio=s, identificacion=ident, descripcion=desc, certificado=cert,
+                                               proxima_calibracion=prox)
+            if generar_pdf:
+                from weasyprint import HTML
+
+                pdf = HTML(string=render_to_string("core/certificado_ejemplo.html", {"s": s})).write_pdf()
+                s.certificado.save(f"{s.numero_certificado}.pdf", ContentFile(pdf), save=True)

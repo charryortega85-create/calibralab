@@ -48,8 +48,8 @@ def test_menu_enlaza_todos_los_modulos(cliente_de, admin):
 
 def test_datos_de_ejemplo_y_pantallas_con_datos(cliente_de, settings):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-    call_command("cargar_demo", stdout=open("/dev/null", "w"))
-    call_command("cargar_demo", stdout=open("/dev/null", "w"))  # no duplica
+    call_command("cargar_demo", sin_archivos=True, stdout=open("/dev/null", "w"))
+    call_command("cargar_demo", sin_archivos=True, stdout=open("/dev/null", "w"))  # no duplica
     assert Equipo.objects.count() == 36 and Servicio.objects.count() == 40
     from apps.cuentas.models import Usuario
 

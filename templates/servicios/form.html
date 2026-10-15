@@ -29,6 +29,19 @@
     </table></div>
   </fieldset></div></div>
   {% endif %}
+  {% if forloop.counter == 4 and patrones %}
+  <div class="card"><div class="card-b"><fieldset class="grupo"><legend>Patrones utilizados</legend>
+    <p class="cell-sub" style="margin-bottom:10px">Los patrones que figuran en el certificado (trazabilidad). Deja vacías las filas que no uses.</p>
+    {{ patrones.management_form }}
+    {% for e in patrones.non_form_errors %}<div class="msg error" role="alert">{{ e }}</div>{% endfor %}
+    <div class="table-wrap"><table class="tbl tbl-form">
+      <thead><tr><th>Identificación</th><th>Descripción</th><th>Certificado del patrón</th><th>Próxima calibración (AAAA-MM)</th></tr></thead>
+      <tbody>{% for f in patrones %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+        {% for campo in f.visible_fields %}<td><div class="field{% if campo.errors %} has-err{% endif %}"><label class="sr-only" for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{% for e in campo.errors %}<div class="err">{{ e }}</div>{% endfor %}</div></td>{% endfor %}
+      </tr>{% endfor %}</tbody>
+    </table></div>
+  </fieldset></div></div>
+  {% endif %}
   {% endfor %}
   <div class="form-actions"><button class="btn primary" type="submit">{% if servicio %}Guardar la corrección{% else %}Guardar y calcular el resultado{% endif %}</button>
     <a class="btn" href="{% if servicio %}{{ servicio.get_absolute_url }}{% else %}{{ equipo.get_absolute_url }}{% endif %}">Cancelar</a></div>

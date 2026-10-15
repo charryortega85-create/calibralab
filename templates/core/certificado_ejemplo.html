@@ -1,0 +1,34 @@
+{% load calibra %}<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>{{ s.numero_certificado }}</title>
+<style>
+@page{size:A4;margin:16mm 16mm}
+body{font-family:"DejaVu Sans",Arial,sans-serif;font-size:9.5pt;color:#0f172a}
+.marca{position:fixed;top:45%;left:0;right:0;text-align:center;font-size:44pt;color:rgba(15,118,110,.10);transform:rotate(-30deg);font-weight:700}
+.cab{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:8px}
+.cab b{font-size:15pt;color:#0f766e}.cab h1{font-size:14pt;margin:0}
+.num{margin:10px 0;font-size:11pt}.num b{background:#e2e8f0;padding:3px 10px}
+h2{font-size:10pt;background:#f1f5f9;padding:4px 6px;margin:12px 0 4px}
+table{width:100%;border-collapse:collapse}td,th{border:1px solid #cbd5e1;padding:3px 6px;text-align:left}th{background:#f8fafc;width:28%}
+.firma{display:flex;justify-content:space-between;margin-top:26px}.firma div{width:45%;border-top:1px solid #64748b;padding-top:4px;text-align:center}
+.pie{margin-top:18px;font-size:7.5pt;color:#64748b}
+</style></head><body>
+<div class="marca">DATOS DE EJEMPLO</div>
+<div class="cab"><b>{{ s.proveedor }}</b><h1>CERTIFICADO DE {{ s.get_tipo_display|upper }}</h1></div>
+<p class="num">Certificado N.º <b>{{ s.numero_certificado }}</b></p>
+<h2>1. Instrumento</h2>
+<table><tr><th>Instrumento</th><td>{{ s.equipo.descripcion }}</td><th>N.º de serie</th><td>{{ s.equipo.numero_serie }}</td></tr>
+<tr><th>Identificación</th><td>{{ s.equipo.codigo }}</td><th>Intervalo</th><td>{% if s.equipo.rango_min is not None %}{{ s.equipo.rango_min|num }} a {{ s.equipo.rango_max|num }} {{ s.equipo.unidad }}{% else %}—{% endif %}</td></tr>
+<tr><th>Marca y modelo</th><td>{{ s.equipo.marca }} {{ s.equipo.modelo }}</td><th>Resolución</th><td>{% if s.equipo.resolucion is not None %}{{ s.equipo.resolucion|num }} {{ s.equipo.unidad }}{% else %}—{% endif %}</td></tr></table>
+<h2>2. Patrones utilizados</h2>
+<table><tr><th>Identificación</th><th>Descripción</th><th>Certificado</th><th>Próx. calibración</th></tr>
+{% for p in s.patrones.all %}<tr><td>{{ p.identificacion }}</td><td>{{ p.descripcion }}</td><td>{{ p.certificado }}</td><td>{{ p.proxima_calibracion }}</td></tr>{% endfor %}</table>
+<h2>3. Datos de la {{ s.get_tipo_display|lower }}</h2>
+<table><tr><th>Fecha</th><td>{{ s.fecha|date:"Y-m-d" }}</td><th>Lugar</th><td>{{ s.lugar }}</td></tr>
+<tr><th>Temperatura</th><td>{{ s.temperatura_ambiente|num }} °C</td><th>Humedad relativa</th><td>{{ s.humedad_relativa|num }} %</td></tr>
+<tr><th>Procedimiento</th><td colspan="3">{{ s.procedimiento }}</td></tr></table>
+{% if s.es_calibracion %}<h2>4. Resultados</h2>
+<table><tr><th>Valor de referencia</th><th>Indicación del equipo</th><th>Error (E)</th><th>Incertidumbre (U, k=2)</th></tr>
+{% for p in s.puntos.all %}<tr><td>{{ p.valor_referencia|num }} {{ s.equipo.unidad }}</td><td>{{ p.valor_leido|num }}</td><td>{{ p.error|num }}</td><td>{{ p.incertidumbre|num }}</td></tr>{% endfor %}</table>
+{% else %}<h2>4. Resultado</h2><p>{{ s.criterios_aceptacion }} Resultado: <b>{{ s.get_resultado_display }}</b>. Vigente hasta {{ s.vigencia_hasta|date:"Y-m-d" }}.</p>{% endif %}
+<div class="firma"><div>Realizado por<br><b>{{ s.realizado_por }}</b></div><div>Autorizado por<br><b>{{ s.autorizado_por }}</b></div></div>
+<p class="pie">Documento inventado para la demostración de CalibraLab. No corresponde a ningún laboratorio ni proveedor real.</p>
+</body></html>

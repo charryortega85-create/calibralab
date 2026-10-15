@@ -7,7 +7,8 @@ from apps.core.archivos import validar_adjunto
 from apps.core.formularios import FechaInput, MotivoMixin
 from apps.equipos.forms import activos_o_actual
 
-from .models import Decision, DecisionNoApto, PuntoMedido, ReglaComparacion, Servicio, TipoServicio
+from .models import (AnexoServicio, Decision, DecisionNoApto, PatronUtilizado, PuntoMedido, ReglaComparacion, Servicio,
+                     TipoServicio)
 
 
 class ServicioForm(MotivoMixin, forms.ModelForm):
@@ -20,14 +21,17 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
         ("Servicio", ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad"], ""),
         ("Calibración", ["regla", "proxima_manual", "justificacion_proxima"], "calibracion"),
         ("Calificación o certificación", ["resultado", "criterios_aceptacion", "vigencia_hasta"], "otro"),
+        ("Datos del certificado", ["lugar", "temperatura_ambiente", "humedad_relativa", "procedimiento",
+                                   "realizado_por", "autorizado_por"], "certificado"),
         ("Otros datos", ["ajustes", "observaciones", "motivo"], ""),
     ]
 
     class Meta:
         model = Servicio
         fields = ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad", "regla",
-                  "justificacion_proxima", "resultado", "criterios_aceptacion", "vigencia_hasta", "ajustes",
-                  "observaciones"]
+                  "justificacion_proxima", "resultado", "criterios_aceptacion", "vigencia_hasta", "lugar",
+                  "temperatura_ambiente", "humedad_relativa", "procedimiento", "realizado_por", "autorizado_por",
+                  "ajustes", "observaciones"]
         widgets = {
             "fecha": FechaInput(), "vigencia_hasta": FechaInput(),
             "ajustes": forms.Textarea(attrs={"rows": 2}), "observaciones": forms.Textarea(attrs={"rows": 2}),
@@ -118,6 +122,27 @@ class PuntosMedidosFormSet(forms.BaseInlineFormSet):
 PuntosFormSet = inlineformset_factory(
     Servicio, PuntoMedido, form=PuntoMedidoForm, formset=PuntosMedidosFormSet, extra=0, can_delete=False,
 )
+
+
+class PatronForm(forms.ModelForm):
+    class Meta:
+        model = PatronUtilizado
+        fields = ["identificacion", "descripcion", "certificado", "proxima_calibracion"]
+        widgets = {"proxima_calibracion": forms.TextInput(attrs={"placeholder": "AAAA-MM"})}
+
+
+def patrones_formset(extra):
+    """Patrones del certificado. No se borran (RN-07): una fila mal cargada se corrige."""
+    return inlineformset_factory(Servicio, PatronUtilizado, form=PatronForm, extra=extra, can_delete=False)
+
+
+class AnexoForm(forms.ModelForm):
+    class Meta:
+        model = AnexoServicio
+        fields = ["titulo", "archivo"]
+
+    def clean_archivo(self):
+        return validar_adjunto(self.cleaned_data.get("archivo"), obligatorio=True)
 
 
 class DecisionForm(forms.ModelForm):

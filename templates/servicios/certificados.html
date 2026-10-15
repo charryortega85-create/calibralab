@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Certificados{% endblock %}
+{% block contenido %}
+<div class="page-head">
+  <div><div class="crumbs">Archivo</div><h1>Certificados</h1>
+  <p>{{ pagina.paginator.count }} certificado{{ pagina.paginator.count|pluralize }}. Cada uno tiene su QR para consultarlo desde el teléfono.</p></div>
+  <div class="actions"><a class="btn" href="?{% if consulta %}{{ consulta }}&{% endif %}formato=zip">{% icono "i-down" %}Descargar en ZIP</a>
+  {% if user.puede_editar %}<a class="btn primary" href="{% url 'servicios:crear' %}">{% icono "i-plus" %}Registrar servicio</a>{% endif %}</div>
+</div>
+<form class="filters" method="get">
+  <div class="field"><label for="q">Buscar</label><input id="q" type="search" name="q" value="{{ f.q }}" placeholder="Equipo, n.º de certificado o patrón"></div>
+  <div class="field"><label for="tipo">Tipo</label><select id="tipo" name="tipo"><option value="">Todos</option>{% for v, t in tipos %}<option value="{{ v }}"{% if f.tipo == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="proveedor">Proveedor</label><select id="proveedor" name="proveedor"><option value="">Todos</option>{% for p in proveedores %}<option value="{{ p.pk }}"{% if f.proveedor == p.pk|stringformat:"d" %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="anio">Año</label><select id="anio" name="anio"><option value="">Todos</option>{% for a in anios %}<option value="{{ a }}"{% if f.anio == a|stringformat:"d" %} selected{% endif %}>{{ a }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="vigentes">Mostrar</label><select id="vigentes" name="vigentes"><option value="">Todos los certificados</option><option value="1"{% if f.vigentes == "1" %} selected{% endif %}>Solo el último de cada equipo</option></select></div>
+  <button class="btn" type="submit">Filtrar</button>
+</form>
+<div class="card"><div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Certificado</th><th>Equipo</th><th>Servicio</th><th>Fecha</th><th>Resultado</th><th>Archivo</th><th></th></tr></thead>
+  <tbody>{% for s in pagina %}<tr>
+    <td><a class="code link" href="{% url 'servicios:certificado' s.pk %}">{{ s.numero_certificado }}</a><span class="cell-sub">{{ s.proveedor }}</span></td>
+    <td><a class="link" href="{{ s.equipo.get_absolute_url }}">{{ s.equipo.codigo }}</a><span class="cell-sub">{{ s.equipo.descripcion }}</span></td>
+    <td>{{ s.get_tipo_display }}</td><td class="nw">{{ s.fecha|date:"Y-m-d" }}</td><td>{{ s|dictamen }}</td>
+    <td>{% if s.certificado %}<a class="link" href="{% url 'core:archivo' s.certificado.name %}" target="_blank" rel="noopener">{% icono "i-file" %}Abrir</a>{% with n=s.anexos.all|length %}{% if n %}<span class="cell-sub">+ {{ n }} página{{ n|pluralize }}</span>{% endif %}{% endwith %}{% else %}<span class="badge b-warn">{% icono "i-alert" %}Sin archivo</span>{% endif %}</td>
+    <td><a class="btn sm" href="{% url 'servicios:certificado' s.pk %}">{% icono "i-qr" %}Ver y QR</a></td>
+  </tr>{% empty %}<tr><td colspan="7" class="empty">No hay certificados con esos filtros.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% if pagina.has_other_pages %}<nav class="pager">{% if pagina.has_previous %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>{% if pagina.has_next %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+{% endblock %}

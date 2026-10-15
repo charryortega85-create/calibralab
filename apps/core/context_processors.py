@@ -6,6 +6,7 @@ MENU = [
     ("Principal", "Inicio", "i-home", "core:inicio", "", False),
     ("Principal", "Equipos", "i-flask", "equipos:lista", "B", False),
     ("Principal", "Calibraciones", "i-gauge", "servicios:lista", "C", False),
+    ("Principal", "Certificados", "i-file", "servicios:certificados", "C", False),
     ("Principal", "Estado y alertas", "i-bell", "alertas:estado", "D", False),
     ("Gestión", "Plan y presupuesto", "i-calendar", "plan:indice", "E", False),
     ("Gestión", "Mantenimiento", "i-wrench", "mantenimiento:indice", "F", False),
@@ -30,8 +31,12 @@ def menu(request):
             url = reverse(nombre_url) if nombre_url else None
         except NoReverseMatch:
             url = None
-        activo = bool(url) and (ruta == url if url == "/" else ruta.startswith(url))
         grupos.setdefault(grupo, []).append(
-            {"texto": texto, "icono": icono, "url": url, "modulo": modulo, "activo": activo}
+            {"texto": texto, "icono": icono, "url": url, "modulo": modulo, "activo": False}
         )
+    # Se marca solo la opción cuya dirección coincide más larga (Certificados dentro de /servicios/).
+    coinciden = [it for items in grupos.values() for it in items
+                 if it["url"] and (ruta == it["url"] if it["url"] == "/" else ruta.startswith(it["url"]))]
+    if coinciden:
+        max(coinciden, key=lambda it: len(it["url"]))["activo"] = True
     return {"menu_grupos": grupos.items()}
