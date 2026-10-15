@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Inicio / Panel de control</div><h1>Panel de control</h1>
+<p>{{ saludo }}, {{ user.get_short_name }}. Hoy es {{ hoy|date:"l j \d\e F \d\e Y" }}.</p></div></div>
+
+<div class="card">
+  <div class="card-h"><div><h2>Sistema en construcción</h2>
+  <p>Los indicadores de calibración aparecerán aquí cuando estén listos los módulos de equipos, calibraciones y alertas.</p></div></div>
+  <div class="card-b">
+    <div class="mod-grid">
+      <div class="mod"><b>A · Acceso y usuarios</b><small>Listo: ingreso, roles, usuarios y configuración.</small></div>
+      <div class="mod"><b>H · Registro de cambios</b><small>Listo: cada alta, cambio e ingreso queda registrado.</small></div>
+      <div class="mod"><b>B · Inventario y ficha</b><small>Próximo paso.</small></div>
+      <div class="mod"><b>C · Servicios</b><small>Pendiente.</small></div>
+      <div class="mod"><b>D · Estado y alertas</b><small>Pendiente.</small></div>
+      <div class="mod"><b>E, F y G</b><small>Plan, mantenimiento y reportes: pendientes.</small></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

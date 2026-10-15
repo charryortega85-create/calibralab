@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Sistema / Configuración</div><h1>Configuración del sistema</h1>
+<p>Define con cuánta anticipación se avisa de los vencimientos y a qué hora salen los correos.</p></div></div>
+<div class="card"><div class="card-b">
+  <form method="post" class="form" novalidate>
+    {% include "_form.html" %}
+    <div class="form-actions"><button class="btn primary" type="submit">Guardar</button></div>
+  </form>
+</div></div>
+{% endblock %}

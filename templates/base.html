@@ -1,0 +1,58 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+{% include "_head.html" %}
+<title>{% block titulo %}Inicio{% endblock %} · CalibraLab</title>
+</head>
+<body>
+{% include "_iconos.html" %}
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="Menú de navegación">
+    <a class="brand" href="{% url 'core:inicio' %}" aria-label="CalibraLab, ir al inicio">
+      <span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-gauge"/></svg></span>
+      <span><b>CalibraLab</b><small>Gestión de calibraciones</small></span>
+    </a>
+    <nav class="nav" aria-label="Módulos del sistema">
+      {% for grupo, items in menu_grupos %}
+      <div class="nav-group">
+        <div class="nav-label">{{ grupo }}</div>
+        {% for it in items %}
+          {% if it.url %}
+          <a href="{{ it.url }}"{% if it.activo %} aria-current="page"{% endif %}{% if it.modulo %} title="Módulo {{ it.modulo }}"{% endif %}><svg class="i" aria-hidden="true"><use href="#{{ it.icono }}"/></svg>{{ it.texto }}</a>
+          {% else %}
+          <a class="off" aria-disabled="true" title="Módulo {{ it.modulo }}: todavía en desarrollo"><svg class="i" aria-hidden="true"><use href="#{{ it.icono }}"/></svg>{{ it.texto }}<small>pronto</small></a>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </nav>
+    <div class="side-foot">
+      <div class="side-card"><b>Datos de ejemplo</b>Sistema en desarrollo. Los datos son inventados y no corresponden a ningún laboratorio real.</div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Abrir el menú" aria-controls="sidebar" aria-expanded="false"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <span class="spacer"></span>
+      <span class="chip date">{% now "D j M Y" %}</span>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Cambiar a tema oscuro" title="Cambiar tema"></button>
+      <div class="user-menu">
+        <div class="user" title="Sesión iniciada · rol {{ user.get_rol_display }}"><span class="avatar" aria-hidden="true">{{ user.iniciales }}</span><span class="u-txt"><b>{{ user.nombre|default:user.username }}</b><small>{{ user.get_rol_display }}</small></span></div>
+        <a class="icon-btn" href="{% url 'cuentas:cambiar_contrasena' %}" aria-label="Cambiar mi contraseña" title="Cambiar mi contraseña"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg></a>
+        <form method="post" action="{% url 'cuentas:logout' %}">{% csrf_token %}
+          <button class="icon-btn" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg></button>
+        </form>
+      </div>
+    </header>
+
+    <main class="content" id="contenido">
+      {% if messages %}<div class="msgs">{% for m in messages %}<div class="msg {{ m.tags }}" role="status">{{ m }}</div>{% endfor %}</div>{% endif %}
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{% static 'js/calibralab.js' %}"></script>
+</body>
+</html>

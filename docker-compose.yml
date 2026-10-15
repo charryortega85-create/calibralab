@@ -1,0 +1,37 @@
+# Desarrollo y demostración: base de datos PostgreSQL 16 + aplicación Django.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-calibralab}
+      POSTGRES_USER: ${POSTGRES_USER:-calibralab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-calibralab}
+    volumes:
+      - datos_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-calibralab}"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_SSL_REDIRECT: "false"   # en la demostración local; en el servidor HTTPS lo pone Nginx (RNF-04)
+    ports:
+      - "8000:8000"
+    volumes:
+      - archivos:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  datos_db:
+  archivos:

@@ -1,0 +1,17 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+{% include "_head.html" %}
+<title>Acceso bloqueado · CalibraLab</title>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="card login-card"><div class="card-b">
+    <h1 style="font-size:22px;margin-bottom:12px">Acceso bloqueado por 15 minutos</h1>
+    <p>Hubo 5 intentos fallidos seguidos con este usuario. Por seguridad el acceso queda bloqueado durante 15 minutos.</p>
+    <p>Si olvidaste la contraseña, pide al administrador que la restablezca.</p>
+    <div class="form-actions"><a class="btn" href="{% url 'cuentas:login' %}">Volver a la pantalla de ingreso</a></div>
+  </div></div>
+</div>
+</body>
+</html>

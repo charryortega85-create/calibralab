@@ -1,0 +1,26 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+{% include "_head.html" %}
+<title>Ingresar · CalibraLab</title>
+</head>
+<body>
+{% include "_iconos.html" %}
+<div class="login-wrap">
+  <div class="card login-card">
+    <div class="card-b">
+      <div class="brand">
+        <span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-gauge"/></svg></span>
+        <span><b>CalibraLab</b><small>Gestión de calibraciones</small></span>
+      </div>
+      <h1 style="font-size:22px;margin-bottom:16px">Ingresar al sistema</h1>
+      <form method="post" class="form" novalidate>
+        {% include "_form.html" %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="form-actions"><button class="btn primary" type="submit">Ingresar</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

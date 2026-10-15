@@ -1,0 +1,4 @@
+{% csrf_token %}
+{% for e in form.non_field_errors %}<div class="msg error" role="alert">{{ e }}</div>{% endfor %}
+{% for campo in form.visible_fields %}{% include "_campo.html" %}{% endfor %}
+{% for campo in form.hidden_fields %}{{ campo }}{% endfor %}

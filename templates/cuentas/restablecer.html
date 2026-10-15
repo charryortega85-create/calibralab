@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Restablecer contraseña{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Sistema / <a class="link" href="{% url 'cuentas:usuarios' %}">Usuarios</a></div>
+<h1>Restablecer la contraseña de {{ usuario.nombre }}</h1>
+<p>Escribe una contraseña nueva de al menos 10 caracteres y entrégasela a la persona de forma segura.</p></div></div>
+<div class="card"><div class="card-b">
+  <form method="post" class="form" novalidate>
+    {% include "_form.html" %}
+    <div class="form-actions"><button class="btn primary" type="submit">Restablecer</button>
+    <a class="btn" href="{% url 'cuentas:usuarios' %}">Cancelar</a></div>
+  </form>
+</div></div>
+{% endblock %}

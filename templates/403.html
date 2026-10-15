@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titulo %}Acceso denegado{% endblock %}
+{% block contenido %}
+<div class="card"><div class="card-b empty-state">
+  <h1 style="font-size:22px;margin-bottom:8px">No tienes permiso para ver esta pantalla</h1>
+  <p>Tu rol no incluye esta función. Si la necesitas, pídesela al administrador del sistema.</p>
+  <div class="form-actions" style="justify-content:center;margin-top:12px"><a class="btn" href="{% url 'core:inicio' %}">Volver al inicio</a></div>
+</div></div>
+{% endblock %}

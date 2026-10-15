@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titulo %}Página no encontrada{% endblock %}
+{% block contenido %}
+<div class="card"><div class="card-b empty-state">
+  <h1 style="font-size:22px;margin-bottom:8px">No encontramos esta página</h1>
+  <p>Revisa la dirección o vuelve al inicio.</p>
+  <div class="form-actions" style="justify-content:center;margin-top:12px"><a class="btn" href="{% url 'core:inicio' %}">Volver al inicio</a></div>
+</div></div>
+{% endblock %}

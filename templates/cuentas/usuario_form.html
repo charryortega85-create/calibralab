@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titulo %}{% if object %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Sistema / <a class="link" href="{% url 'cuentas:usuarios' %}">Usuarios</a></div>
+<h1>{% if object %}Editar a {{ object.nombre }}{% else %}Nuevo usuario{% endif %}</h1></div></div>
+<div class="card"><div class="card-b">
+  <form method="post" class="form" novalidate>
+    {% include "_form.html" %}
+    <div class="form-actions"><button class="btn primary" type="submit">Guardar</button>
+    <a class="btn" href="{% url 'cuentas:usuarios' %}">Cancelar</a></div>
+  </form>
+</div></div>
+{% endblock %}
