@@ -7,3 +7,4 @@ qrcode>=8.0
 pillow>=11.0
 weasyprint>=65
 gunicorn>=23.0
+whitenoise>=6.7
