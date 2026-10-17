@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Evaluación del efecto{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'servicios:lista' %}">Calibraciones</a> / <a class="link" href="{{ s.get_absolute_url }}">{{ s.numero_certificado }}</a></div>
+<h1>Evaluación del efecto · {{ s.equipo.codigo }}</h1><p>{{ s.equipo.descripcion }} · calibración no apta del {{ s.fecha|date:"Y-m-d" }}</p></div>
+{% if user.puede_editar %}<div class="actions"><a class="btn" href="?corregir=1">Corregir</a></div>{% endif %}</div>
+<div class="stack">
+<div class="status-row"><div class="status-box"><small>Período evaluado</small><b>{{ ev.desde|date:"Y-m-d"|default:"inicio" }} a {{ ev.hasta|date:"Y-m-d" }}</b></div>
+<div class="status-box"><small>Conclusión</small><b>{{ ev.get_conclusion_display }}</b></div>
+<div class="status-box"><small>Evaluado por</small><b>{{ ev.evaluado_por }} · {{ ev.fecha|date:"Y-m-d" }}</b></div></div>
+<div class="card"><div class="card-b"><h2>Resultados revisados</h2><p style="white-space:pre-line">{{ ev.resultados_revisados }}</p>
+{% if ev.acciones %}<h2 style="margin-top:14px">Acciones tomadas</h2><p style="white-space:pre-line">{{ ev.acciones }}</p>{% endif %}</div></div>
+{% if versiones|length > 1 %}<div class="card"><div class="card-h"><div><h2>Versiones anteriores</h2></div></div><div class="card-b"><ul class="histo">
+{% for v in versiones %}<li><b>{{ v.history_date|date:"Y-m-d H:i" }}</b> · {{ v.history_user|default:"sistema" }}{% if v.history_change_reason %}: {{ v.history_change_reason }}{% endif %}</li>{% endfor %}</ul></div></div>{% endif %}
+</div>
+{% endblock %}

@@ -387,3 +387,70 @@ a{color:inherit;text-decoration:none}
 .mod b{display:block;margin-bottom:4px}
 .mod small{color:var(--text-3)}
 .btn.ghost{background:transparent}
+.tag.b-ok{background:var(--ok-bg);color:var(--ok)}
+.tag.b-warn{background:var(--warn-bg);color:var(--warn)}
+.tag.b-bad{background:var(--bad-bg);color:var(--bad)}
+.tag.b-mute{background:var(--mute-bg);color:var(--mute)}
+.form-wide{max-width:none}
+fieldset.grupo{border:1px solid var(--border);border-radius:12px;padding:16px;margin:0 0 4px}
+fieldset.grupo legend{font-weight:700;padding:0 6px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.form-grid .field.full{grid-column:1/-1}
+.tbl-form td{vertical-align:top}
+.tbl-form .field input,.tbl-form .field select{min-width:90px}
+.dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px 20px;margin:0}
+.dl div{min-width:0}
+.dl dt{font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+.dl dd{margin:2px 0 0;font-weight:500;overflow-wrap:anywhere}
+.stack{display:grid;gap:16px}
+.cols-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.status-row{display:flex;flex-wrap:wrap;gap:12px}
+.status-box{flex:1;min-width:200px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
+.status-box small{display:block;font-size:12px;color:var(--text-3);text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.status-box .sub{display:block;font-size:13px;color:var(--text-2);margin-top:4px}
+.errores{margin:0;padding-left:18px;color:var(--bad);font-size:13px}
+.etiqueta-qr{display:inline-grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;border:2px solid var(--text);border-radius:10px;padding:12px 16px;background:#fff;color:#0f1b2d;max-width:420px}
+.etiqueta-qr svg{width:120px;height:120px}
+.etiqueta-qr b{font-size:20px;display:block}
+.kpi-link{color:inherit;text-decoration:none}
+.histo{font-size:13px}
+details.versiones summary{cursor:pointer;font-weight:600}
+@media print{.no-print{display:none!important}}
+.seg-ctl a{display:inline-flex;align-items:center;height:30px;padding:0 13px;border-radius:8px;color:var(--text-2);font-size:12.5px;font-weight:600;text-decoration:none}
+.seg-ctl a.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(15,27,45,.16)}
+.tech details>summary::-webkit-details-marker{display:none}
+.tech details[open] .tech-act .i{transform:rotate(180deg)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.grid-2 .card-b .filters{margin-bottom:6px}
+.filters .check{display:flex;align-items:center;gap:8px;font-weight:600;min-height:40px}
+.card-h .filters{margin-bottom:0}
+.tbl span.cell-sub{display:block}
+/* Archivo de certificados */
+.cert-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+.cert-grid .stack{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1000px){.cert-grid{grid-template-columns:1fr}.cert-grid>.stack{order:-1}}
+.cert-archivo{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cert-archivo-h{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;background:var(--surface-2);font-size:13px}
+.cert-img{display:block;width:100%;height:auto}
+.cert-pdf{display:block;width:100%;height:70vh;border:0}
+@media print{.cert-grid{display:block}.cert-qr{border:0;box-shadow:none}}
+
+/* ---------- Consulta pública por QR ---------- */
+.pub-top{background:var(--nav-bg);padding:14px 16px}
+.pub-top .brand{padding:0}
+.pub-main{grid-template-columns:minmax(0,1fr);max-width:880px;margin:0 auto;padding:20px 16px 32px}
+.pub-head small{display:block;font-size:12px;color:var(--text-3);text-transform:uppercase;font-weight:600;letter-spacing:.03em}
+.pub-head h1{font-size:22px;line-height:1.25;margin:2px 0 4px;overflow-wrap:anywhere}
+.pub-head p{color:var(--text-2)}
+.pub-cert{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.pub-cert:hover{border-color:var(--brand-2)}
+.pub-cert small{display:block;font-size:12px;color:var(--text-3)}
+.pub-cert b{display:block}
+.pub-cert-r{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.pub-pie{font-size:12.5px;color:var(--text-3);text-align:center}
+.pub .tbl{min-width:0}
+.pub .tbl th,.pub .tbl td{padding-left:10px;padding-right:10px}
+.pub .tbl th:first-child,.pub .tbl td:first-child{padding-left:16px}
+.pub .tbl th:last-child,.pub .tbl td:last-child{padding-right:16px}
+/* En el teléfono el PDF no se ve dentro de la página: se abre con el botón. */
+@media (max-width:760px){.pub .cert-pdf{display:none}.pub .cert-archivo{border:0}.pub .cert-archivo-h{padding:0;background:none;align-items:center}}

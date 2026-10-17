@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo|capfirst }}{% endblock %}
+{% block contenido %}
+<div class="page-head">
+  <div><div class="crumbs"><a class="link" href="{% url 'catalogos:indice' %}">Listas controladas</a> /</div><h1>{{ titulo|capfirst }}</h1>
+  <p>Para dejar de usar un valor, edítalo y desmarca «activo»: no se borra porque otros registros lo usan.</p></div>
+  <div class="actions"><a class="btn primary" href="{% url 'catalogos:crear' clave %}"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Agregar</a></div>
+</div>
+<form class="filters" method="get" role="search">
+  <div class="field"><label for="q">Buscar</label><input id="q" name="q" value="{{ q }}"></div>
+  <button class="btn" type="submit">Buscar</button>
+</form>
+<div class="card"><div class="table-wrap"><table class="tbl">
+  <thead><tr>{% for c in columnas %}<th>{{ c|capfirst }}</th>{% endfor %}<th>Acciones</th></tr></thead>
+  <tbody>
+  {% for obj, valores in filas %}
+    <tr>{% for v in valores %}<td>{% if v is True %}<span class="badge b-ok">Sí</span>{% elif v is False %}<span class="badge b-mute">No</span>{% else %}{{ v|default:"—" }}{% endif %}</td>{% endfor %}
+      <td><a class="btn sm" href="{% url 'catalogos:editar' clave obj.pk %}">Editar</a></td></tr>
+  {% empty %}<tr><td colspan="{{ columnas|length|add:1 }}" class="empty">Todavía no hay datos en esta lista.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

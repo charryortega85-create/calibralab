@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Plan y presupuesto{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Gestión</div><h1>Plan, lotes y presupuesto</h1>
+<p>El programa de calibración: qué equipos se calibran, en qué lote, en qué año y con qué presupuesto.</p></div>
+<div class="actions"><a class="btn" href="{% url 'plan:prioridad' %}">Prioridad sugerida</a>
+{% if user.puede_editar %}<a class="btn" href="{% url 'plan:lote_crear' %}">{% icono "i-plus" %}Nuevo lote</a><a class="btn primary" href="{% url 'plan:plan_crear' %}">{% icono "i-plus" %}Nuevo plan anual</a>{% endif %}</div></div>
+<div class="stack">
+<div class="card"><div class="card-h"><div><h2>Planes anuales</h2><p>Avance del plan (ejecutado frente a programado) y del presupuesto (pagado frente a previsto).</p></div></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Ejercicio</th><th>Lotes programados</th><th>Avance del plan</th><th>Previsto</th><th>Pagado</th><th>Avance del presupuesto</th></tr></thead>
+  <tbody>{% for p, a in resumen %}<tr><td><a class="link" href="{{ p.get_absolute_url }}"><b>{{ p.ejercicio }}</b></a><span class="cell-sub">{{ p.descripcion }}</span></td>
+    <td>{{ a.programados }}</td>
+    <td><div class="meter-bar" style="min-width:120px"><i style="width:{{ a.pct_plan|stringformat:'s' }}%"></i></div><span class="cell-sub">{{ a.ejecutados }} de {{ a.programados }} · {{ a.pct_plan }} %</span></td>
+    <td class="nw">{{ a.previsto|guaranies }}</td><td class="nw">{{ a.pagado|guaranies }}</td>
+    <td><div class="meter-bar" style="min-width:120px"><i style="width:{{ a.pct_presupuesto|stringformat:'s' }}%"></i></div><span class="cell-sub">{{ a.pct_presupuesto }} %</span></td></tr>
+  {% empty %}<tr><td colspan="6" class="empty">Todavía no hay planes anuales.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-h"><div><h2>Lotes</h2></div></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Código</th><th>Nombre</th><th>Equipos</th><th>Proveedor previsto</th><th>Costo estimado</th></tr></thead>
+  <tbody>{% for l in lotes %}<tr><td><a class="code link" href="{{ l.get_absolute_url }}">{{ l.codigo }}</a>{% if not l.activo %} <span class="tag">Inactivo</span>{% endif %}</td><td>{{ l.nombre }}</td><td>{{ l.equipos.all|length }}</td><td>{{ l.proveedor|default:"—" }}</td><td class="nw">{{ l.costo_estimado|guaranies }}</td></tr>
+  {% empty %}<tr><td colspan="5" class="empty">Todavía no hay lotes.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+{% endblock %}

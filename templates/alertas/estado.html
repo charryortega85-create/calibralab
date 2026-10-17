@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Estado y alertas{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Estado y alertas</div><h1>Equipos que requieren atención</h1>
+<p>Vencidos primero; después por criticidad (alta a baja) y por los días que faltan. Los equipos de baja no se incluyen.</p></div>
+<div class="actions"><a class="btn" href="{% url 'alertas:avisos' %}">Avisos por correo</a></div></div>
+<div class="status-row" style="margin-bottom:16px">
+  <a class="status-box kpi-link" href="{% url 'equipos:lista' %}?estado_cal=vencido"><small>Vencidos</small><b class="t-bad">{{ cnt.vencido }}</b></a>
+  <a class="status-box kpi-link" href="{% url 'equipos:lista' %}?estado_cal=por_vencer"><small>Por vencer</small><b class="t-warn">{{ cnt.por_vencer }}</b></a>
+  <a class="status-box kpi-link" href="{% url 'equipos:lista' %}?estado_cal=vigente"><small>Vigentes</small><b>{{ cnt.vigente }}</b></a>
+  <a class="status-box kpi-link" href="{% url 'equipos:lista' %}?estado_cal=sin_registro"><small>Sin registro</small><b>{{ cnt.sin_registro }}</b></a>
+</div>
+<div class="card" id="prioridad">{% include "alertas/_prioridad.html" %}</div>
+{% endblock %}

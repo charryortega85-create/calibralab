@@ -33,13 +33,23 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "axes",
+    "simple_history",
     "apps.core",
     "apps.cuentas",
     "apps.auditoria",
+    "apps.catalogos",
+    "apps.equipos",
+    "apps.servicios",
+    "apps.alertas",
+    "apps.plan",
+    "apps.mantenimiento",
+    "apps.reportes",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Sirve el CSS y el JavaScript con gunicorn (Docker y servidor), sin depender de DEBUG.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -47,6 +57,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.auditoria.middleware.UsuarioActualMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
     # Axes va al final: bloquea el acceso tras varios intentos fallidos (RNF-05).
     "axes.middleware.AxesMiddleware",
 ]
@@ -150,3 +161,15 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "CalibraLab <avisos@calibralab.example>")
+
+# --- Archivos adjuntos (certificados, documentos) -------------------------------------
+# Se sirven solo a usuarios con sesión iniciada (ver apps.core.views.archivo).
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+TAMANO_MAXIMO_ADJUNTO_MB = int(env("TAMANO_MAXIMO_ADJUNTO_MB", "20"))
+EXTENSIONES_PERMITIDAS = ["pdf", "jpg", "jpeg", "png", "webp", "doc", "docx", "xls", "xlsx"]
+
+# Dirección pública del sistema, para los enlaces de los correos y de la etiqueta QR (RF-14).
+URL_SISTEMA = env("URL_SISTEMA", "http://localhost:8000")
+# Firma de los códigos QR. Si se cambia, los QR ya impresos dejan de abrir la consulta.
+QR_CLAVE = env("QR_CLAVE", SECRET_KEY)

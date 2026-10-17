@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Equipo no apto{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{{ s.equipo.get_absolute_url }}">{{ s.equipo.codigo }}</a> / <a class="link" href="{{ s.get_absolute_url }}">{{ s.numero_certificado }}</a></div>
+<h1>{{ s.equipo.codigo }} resultó no apto</h1>
+<p>El sistema propone pasarlo a «fuera de servicio». La decisión final la confirma una persona y queda registrada con su nombre (RN-05).</p></div></div>
+<div class="stack">
+  <div class="card"><div class="card-b">
+    <p><b>Puntos que no cumplen:</b></p>
+    <ul class="histo">{% for p in no_cumplen %}<li>Referencia {{ p.valor_referencia|num }} {{ s.equipo.unidad }}: error {{ p.error|num }}{% if p.incertidumbre and s.regla == "incertidumbre" %} + U {{ p.incertidumbre|num }}{% endif %} supera el EMP ±{{ p.emp_aplicado|num }}</li>{% endfor %}</ul>
+    <p style="margin-top:10px">{% if anterior %}Pudo estar fuera de tolerancia desde su última calibración conforme: <b>{{ anterior.fecha|date:"Y-m-d" }}</b> ({{ anterior.numero_certificado }}). Con esa fecha, revisa los resultados emitidos en el período.{% else %}No tiene una calibración conforme anterior.{% endif %}</p>
+  </div></div>
+  <div class="card"><div class="card-b">
+    <form method="post" class="form" novalidate>
+      {% include "_form.html" %}
+      <div class="form-actions"><button class="btn primary" type="submit">Confirmar la decisión</button>
+      <a class="btn" href="{{ s.get_absolute_url }}">Decidir después</a></div>
+    </form>
+  </div></div>
+</div>
+{% endblock %}

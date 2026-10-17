@@ -1,0 +1,70 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Certificado {{ s.numero_certificado }}{% endblock %}
+{% block contenido %}
+<div class="page-head no-print"><div>
+  <div class="crumbs"><a class="link" href="{% url 'servicios:certificados' %}">Certificados</a> / <a class="link" href="{{ s.equipo.get_absolute_url }}">{{ s.equipo.codigo }}</a></div>
+  <h1>Certificado {{ s.numero_certificado }}</h1>
+  <p>{{ s.get_tipo_display }} de {{ s.equipo }} · {{ s.fecha|date:"Y-m-d" }} · {{ s.proveedor }}</p></div>
+  <div class="actions">
+    {% if user.puede_editar %}<a class="btn" href="{% url 'servicios:anexo' s.pk %}">{% icono "i-plus" %}Agregar página</a>{% endif %}
+    <a class="btn" href="{{ s.get_absolute_url }}">Resultados y versiones</a>
+    <button class="btn primary" type="button" onclick="window.print()">{% icono "i-qr" %}Imprimir QR</button>
+  </div>
+</div>
+<div class="stack">
+  <div class="status-row no-print">
+    <div class="status-box"><small>{% if s.es_calibracion %}Dictamen{% else %}Resultado{% endif %}</small>{{ s|dictamen }}</div>
+    <div class="status-box"><small>{% if s.es_calibracion %}Próxima calibración{% else %}Vigente hasta{% endif %}</small>
+      <b>{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"Sin fecha nueva" }}{% else %}{{ s.vigencia_hasta|date:"Y-m-d" }}{% endif %}</b></div>
+    <div class="status-box"><small>Este certificado</small>
+      {% if vigente %}<span class="badge b-ok">{% icono "i-check" %}Es el último del equipo</span>{% else %}<span class="badge b-mute">{% icono "i-history" %}Hay uno más reciente</span>{% endif %}</div>
+  </div>
+
+  <div class="cert-grid">
+    <div class="card no-print"><div class="card-h"><div><h2>Archivo del certificado</h2>
+      <p>{% if archivos %}{{ archivos|length }} archivo{{ archivos|length|pluralize }}.{% else %}Todavía no se adjuntó el archivo.{% endif %}</p></div></div>
+      <div class="card-b stack">
+        {% for a in archivos %}
+          <div class="cert-archivo"><div class="cert-archivo-h"><b>{{ a.titulo }}</b>
+            <a class="link" href="{% url 'core:archivo' a.nombre %}" target="_blank" rel="noopener">Abrir o descargar</a></div>
+            {% if a.imagen %}<a href="{% url 'core:archivo' a.nombre %}" target="_blank" rel="noopener"><img class="cert-img" src="{% url 'core:archivo' a.nombre %}" alt="{{ a.titulo }} del certificado {{ s.numero_certificado }}" loading="lazy"></a>
+            {% elif a.nombre|lower|slice:"-4:" == ".pdf" %}<iframe class="cert-pdf" src="{% url 'core:archivo' a.nombre %}" title="{{ a.titulo }}"></iframe>{% endif %}
+          </div>
+        {% empty %}
+          {% if user.puede_editar %}<a class="btn primary" href="{% url 'servicios:corregir' s.pk %}">Adjuntar el certificado</a>{% endif %}
+        {% endfor %}
+      </div></div>
+
+    <div class="stack">
+      <div class="card cert-qr"><div class="card-b">
+        <div class="etiqueta-qr">{{ qr|safe }}
+          <div><b>{{ s.numero_certificado }}</b>{{ s.equipo.codigo }} · {{ s.equipo.descripcion }}<br>
+          <small>{{ s.get_tipo_display }} del {{ s.fecha|date:"Y-m-d" }} · {{ s.proveedor }}</small><br>
+          <small>CalibraLab · escanea para ver el certificado</small></div>
+        </div>
+        <p class="cell-sub no-print" style="margin-top:8px">Imprime este QR y pégalo en el certificado en papel o en su carpeta. Al escanearlo se ven los datos y el archivo del certificado, sin iniciar sesión. <a class="link" href="{{ url }}" target="_blank" rel="noopener">Ver lo que se muestra</a>.</p>
+      </div></div>
+
+      <div class="card no-print"><div class="card-h"><div><h2>Datos del certificado</h2></div></div><div class="card-b"><dl class="dl">
+        <div><dt>N.º de certificado</dt><dd class="mono">{{ s.numero_certificado }}</dd></div>
+        <div><dt>Proveedor</dt><dd>{{ s.proveedor }}{% if s.proveedor.acreditacion %}<div class="cell-sub">{{ s.proveedor.acreditacion }}</div>{% endif %}</dd></div>
+        <div><dt>Equipo calibrado</dt><dd><a class="link" href="{{ s.equipo.get_absolute_url }}">{{ s.equipo.codigo }}</a> · {{ s.equipo.descripcion }}<div class="cell-sub">{{ s.equipo.marca }} {{ s.equipo.modelo }} · S/N {{ s.equipo.numero_serie }}</div></dd></div>
+        <div><dt>Fecha de {{ s.get_tipo_display|lower }}</dt><dd>{{ s.fecha|date:"Y-m-d" }}</dd></div>
+        <div><dt>Lugar</dt><dd>{{ s.lugar|default:"—" }}</dd></div>
+        <div><dt>Condiciones ambientales</dt><dd>{% if s.temperatura_ambiente is not None %}{{ s.temperatura_ambiente|num }} °C{% else %}—{% endif %}{% if s.humedad_relativa is not None %} · {{ s.humedad_relativa|num }} % de humedad relativa{% endif %}</dd></div>
+        <div><dt>Procedimiento</dt><dd>{{ s.procedimiento|default:"—" }}</dd></div>
+        <div><dt>Trazabilidad</dt><dd>{{ s.trazabilidad|default:"—" }}</dd></div>
+        <div><dt>Realizado por</dt><dd>{{ s.realizado_por|default:"—" }}</dd></div>
+        <div><dt>Autorizado por</dt><dd>{{ s.autorizado_por|default:"—" }}</dd></div>
+        {% if s.observaciones %}<div><dt>Observaciones</dt><dd>{{ s.observaciones }}</dd></div>{% endif %}
+      </dl></div></div>
+
+      <div class="card no-print"><div class="card-h"><div><h2>Patrones utilizados</h2></div></div>
+        {% if patrones %}<div class="table-wrap"><table class="tbl"><thead><tr><th>Identificación</th><th>Descripción</th><th>Certificado</th><th>Próx. calibración</th></tr></thead>
+        <tbody>{% for p in patrones %}<tr><td class="mono">{{ p.identificacion }}</td><td>{{ p.descripcion|default:"—" }}</td><td class="mono">{{ p.certificado|default:"—" }}</td><td>{{ p.proxima_calibracion|default:"—" }}</td></tr>{% endfor %}</tbody></table></div>
+        {% else %}<div class="card-b"><p class="cell-sub">No se cargaron los patrones de este certificado.</p></div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
