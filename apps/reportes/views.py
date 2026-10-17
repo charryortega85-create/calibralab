@@ -48,8 +48,12 @@ def hoja_vida(request, pk):
         "marca", "ubicacion", "responsable", "unidad", "asignado_a")), pk=pk)
     contexto = datos_hoja_vida(equipo)
     if request.GET.get("formato") == "html":
-        return render(request, "reportes/hoja_vida.html", contexto)
-    from weasyprint import HTML  # se importa aquí: carga bibliotecas gráficas pesadas
+        return render(request, "reportes/hoja_vida.html", {**contexto, "en_pantalla": True})
+    try:
+        from weasyprint import HTML  # se importa aquí: carga bibliotecas gráficas pesadas
+    except (OSError, ImportError):
+        # Falta Pango/GTK (pasa en Windows sin instalarlo): se abre para imprimir desde el navegador.
+        return render(request, "reportes/hoja_vida.html", {**contexto, "en_pantalla": True, "sin_pdf": True})
 
     html = render_to_string("reportes/hoja_vida.html", contexto, request=request)
     pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()

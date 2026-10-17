@@ -18,8 +18,14 @@ table.ficha th{width:22%}table.ficha td{width:28%}
 .na{color:#b91c1c;font-weight:700}.ok{color:#047857;font-weight:700}
 .puntos{font-size:8pt;margin:2px 0 0}
 .puntos td,.puntos th{padding:2px 4px}
+.aviso{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:12px 0 16px;padding:10px 14px;border:1px solid #99f6e4;border-radius:8px;background:#f0fdfa;font-size:10pt}
+.aviso button{font:inherit;padding:6px 14px;border:0;border-radius:6px;background:#0f766e;color:#fff;cursor:pointer}
+@media screen{body{padding:0 16px}}
+@media print{.aviso{display:none}}
 </style></head>
 <body>
+{% if en_pantalla %}<div class="aviso"><span>{% if sin_pdf %}Este equipo no tiene instalada la biblioteca que genera el PDF. Usa el botón y elige <b>Guardar como PDF</b> como impresora.{% else %}Vista previa de la hoja de vida.{% endif %}</span>
+<button type="button" onclick="window.print()">Imprimir o guardar como PDF</button></div>{% endif %}
 <div class="cab"><div><div class="marca">CalibraLab · Hoja de vida del equipo</div><h1>{{ e.codigo }} · {{ e.descripcion }}</h1>
 <p class="sub">{{ e.marca|default:"" }} {{ e.modelo }}{% if e.numero_serie %} · serie {{ e.numero_serie }}{% endif %}</p></div>
 <div class="estado">Estado de calibración<b>{{ estado_txt }}</b>{% if e.proxima %}próxima: {{ e.proxima|date:"Y-m-d" }}{% endif %}</div></div>

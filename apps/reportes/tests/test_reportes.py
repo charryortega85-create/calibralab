@@ -19,6 +19,16 @@ def test_hoja_de_vida_en_pdf(cliente_de, consulta, crear_equipo, calibrar):
     assert "CC-1" in html and "Cambios de estado" in html and "Mantenimiento" in html
 
 
+def test_hoja_de_vida_sin_biblioteca_de_pdf_se_abre_para_imprimir(cliente_de, consulta, crear_equipo, monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "weasyprint", None)  # como en Windows sin GTK
+    e = crear_equipo()
+    r = cliente_de(consulta).get(reverse("reportes:hoja_vida", args=[e.pk]))
+    html = r.content.decode()
+    assert r.status_code == 200 and "Guardar como PDF" in html and "window.print()" in html and "EQ-0001" in html
+
+
 def test_estado_exporta_excel(cliente_de, consulta, crear_equipo, calibrar):
     calibrar(crear_equipo("EQ-0001"), date(2020, 1, 1))
     crear_equipo("EQ-0002")

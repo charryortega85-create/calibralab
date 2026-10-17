@@ -276,6 +276,13 @@ class Command(BaseCommand):
 
     def datos_certificados(self, generar_pdf):
         """Completa los datos del certificado y, si se pide, genera un PDF de ejemplo para el archivo."""
+        if generar_pdf:
+            try:
+                import weasyprint  # noqa: F401
+            except (OSError, ImportError):
+                self.stdout.write(self.style.WARNING(
+                    "No se generan los certificados de ejemplo en PDF: falta la biblioteca de PDF (GTK/Pango)."))
+                generar_pdf = False
         from django.core.files.base import ContentFile
         from django.template.loader import render_to_string
 
