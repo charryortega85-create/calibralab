@@ -18,6 +18,11 @@ class TestIngreso:
         r = client.get(reverse("core:inicio"))
         assert r.status_code == 302 and r.url.startswith(LOGIN)
 
+    def test_boton_para_ver_la_contrasena(self, client, db):
+        html = client.get(LOGIN).content.decode()
+        assert 'type="password"' in html and 'class="pass-ver"' in html and "Mostrar la contraseña" in html
+        assert "js/calibralab.js" in html
+
     def test_ingresa_con_datos_correctos(self, client, tecnico):
         r = ingresar(client, "tecnico")
         assert r.status_code == 302 and r.url == reverse("core:inicio")

@@ -26,4 +26,19 @@
       try { localStorage.setItem('calibralab-tema', t); } catch (e) {}
     });
   }
+
+  // Ver u ocultar la contraseña mientras se escribe.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.pass-ver');
+    if (!btn) return;
+    var input = btn.parentNode.querySelector('input');
+    var ver = input.type === 'password';
+    input.type = ver ? 'text' : 'password';
+    var texto = ver ? 'Ocultar la contraseña' : 'Mostrar la contraseña';
+    btn.setAttribute('aria-pressed', ver ? 'true' : 'false');
+    btn.setAttribute('aria-label', texto);
+    btn.title = texto;
+    btn.querySelector('use').setAttribute('href', ver ? '#i-eye-off' : '#i-eye');
+    input.focus();
+  });
 })();
