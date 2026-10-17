@@ -2,24 +2,27 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import OuterRef, Q, Subquery
+from django.conf import settings
+from django.db.models import Count, OuterRef, Q, Subquery, Sum
 from django.forms import inlineformset_factory
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.catalogos.models import Proveedor
 from apps.core.exportar import exportar
 from apps.core.qr import qr_svg, url_publica_certificado
-from apps.cuentas.permisos import EDITORES, rol_requerido
+from apps.cuentas.permisos import EDITORES, SOLO_ADMIN, rol_requerido
 from apps.equipos.acceso import del_usuario, equipos_visibles
 from apps.equipos.models import Equipo, EstadoEquipo
 
+from . import ia
 from .calculos import DatoFaltante
 from .forms import (AnexoForm, DecisionForm, ElegirEquipoForm, PuntoMedidoForm, PuntosFormSet, PuntosMedidosFormSet,
                     ServicioForm, patrones_formset)
-from .models import Decision, PuntoMedido, Resultado, Servicio, TipoServicio
+from .models import Decision, LecturaIA, PuntoMedido, Resultado, Servicio, TipoServicio
 
 
 def _datos_iniciales(equipo):
@@ -31,6 +34,44 @@ def _pantalla(request, form, formset, equipo, servicio=None, patrones=None):
     return render(request, "servicios/form.html", {
         "form": form, "formset": formset, "equipo": equipo, "servicio": servicio, "patrones": patrones,
         "puntos_ficha": _datos_iniciales(equipo) if servicio is None else None,
+        "ia": ia.disponible() and servicio is None, "ia_hojas": settings.IA_MAXIMO_HOJAS,
+    })
+
+
+FILAS_PATRONES = 3
+
+
+@require_POST
+@rol_requerido(*EDITORES)
+def leer_certificado(request):
+    """Lee el certificado con IA y devuelve los datos para completar el formulario (no guarda el servicio)."""
+    equipo = get_object_or_404(equipos_visibles(request.user, Equipo.objects.exclude(estado=EstadoEquipo.BAJA)),
+                               pk=request.GET.get("equipo") or 0)
+    archivo = request.FILES.get("certificado")
+    if archivo is None:
+        return JsonResponse({"error": "Primero elige el archivo del certificado."}, status=400)
+    try:
+        datos = ia.leer_certificado(archivo, equipo, _datos_iniciales(equipo), request.user)
+    except ia.ErrorLectura as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    if len(datos["patrones"]) > FILAS_PATRONES:
+        datos["avisos"].append(f"El certificado tiene {len(datos['patrones'])} patrones; se cargaron los primeros "
+                               f"{FILAS_PATRONES}. Agrega el resto al corregir el servicio.")
+        datos["patrones"] = datos["patrones"][:FILAS_PATRONES]
+    return JsonResponse(datos)
+
+
+@rol_requerido(*SOLO_ADMIN)
+def lecturas_ia(request):
+    """Registro de lecturas con IA y su costo, para controlar el gasto."""
+    qs = LecturaIA.objects.select_related("usuario", "equipo")
+    hoy = timezone.localdate()
+    del_mes = qs.filter(creado__year=hoy.year, creado__month=hoy.month)
+    return render(request, "servicios/lecturas_ia.html", {
+        "pagina": Paginator(qs, 30).get_page(request.GET.get("page")),
+        "total": qs.aggregate(n=Count("id"), costo=Sum("costo_usd")),
+        "mes": del_mes.aggregate(n=Count("id"), costo=Sum("costo_usd")),
+        "activa": ia.disponible(), "modelo": settings.IA_MODELO,
     })
 
 
@@ -69,7 +110,7 @@ def crear(request):
                                        extra=len(puntos), can_delete=False)
     formset = PuntosAlta(request.POST or None, instance=Servicio(), prefix="puntos",
                          initial=[{"valor_referencia": f"{p.valor_nominal.normalize():f}"} for p in puntos])
-    patrones = patrones_formset(3)(request.POST or None, instance=Servicio(), prefix="patrones")
+    patrones = patrones_formset(FILAS_PATRONES)(request.POST or None, instance=Servicio(), prefix="patrones")
     if request.method == "POST" and form.is_valid() and patrones.is_valid():
         es_cal = form.cleaned_data["tipo"] == TipoServicio.CALIBRACION
         if es_cal and not puntos:

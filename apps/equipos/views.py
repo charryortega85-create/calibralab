@@ -17,6 +17,7 @@ from apps.core.qr import qr_svg, url_publica_equipo
 from apps.cuentas.models import Configuracion, Usuario
 from apps.cuentas.permisos import EDITORES, rol_requerido
 from apps.servicios.calculos import Estado
+from apps.servicios.intervalo import sugerencia_para
 from apps.servicios.models import TipoServicio
 
 from . import importar as imp
@@ -110,6 +111,7 @@ def ficha(request, pk):
         "versiones": equipo.versiones()[:30], "estado_txt": Estado.ETIQUETAS[equipo.estado_cal],
         "dias": (equipo.proxima - timezone.localdate()).days if equipo.proxima else None,
         "plazo": Configuracion.actual().plazo_aviso_dias, "hoy": timezone.localdate(),
+        "intervalo": sugerencia_para(equipo),
     })
 
 

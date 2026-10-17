@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Lecturas con IA{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Sistema</div><h1>Lecturas de certificados con IA</h1>
+<p>{% if activa %}Activada con el modelo {{ modelo }}.{% else %}Desactivada: falta configurar la variable ANTHROPIC_API_KEY.{% endif %} Cada lectura queda registrada con su costo.</p></div></div>
+<div class="status-row" style="margin-bottom:16px">
+  <div class="status-box"><small>Este mes</small><b>{{ mes.n }} lectura{{ mes.n|pluralize }}</b><span class="sub">USD {{ mes.costo|default:0|floatformat:2 }}</span></div>
+  <div class="status-box"><small>Desde el inicio</small><b>{{ total.n }} lectura{{ total.n|pluralize }}</b><span class="sub">USD {{ total.costo|default:0|floatformat:2 }}</span></div>
+</div>
+<div class="card"><div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Fecha</th><th>Usuario</th><th>Equipo</th><th>Archivo</th><th>Hojas</th><th>Modelo</th><th>Tokens</th><th>Costo (USD)</th><th>Resultado</th></tr></thead>
+  <tbody>{% for l in pagina %}<tr>
+    <td class="nw">{{ l.creado|date:"Y-m-d H:i" }}</td><td>{{ l.usuario }}</td>
+    <td><a class="code link" href="{{ l.equipo.get_absolute_url }}">{{ l.equipo.codigo }}</a></td>
+    <td>{{ l.archivo }}</td><td>{{ l.hojas|default:"—" }}</td><td class="mono">{{ l.modelo }}</td>
+    <td class="nw">{{ l.tokens_entrada }} + {{ l.tokens_salida }}</td>
+    <td>{% if l.costo_usd is not None %}{{ l.costo_usd|floatformat:4 }}{% else %}—{% endif %}</td>
+    <td>{% if l.exito %}<span class="badge b-ok">Leído</span>{% else %}<span class="badge b-bad">No leído</span><span class="cell-sub">{{ l.mensaje }}</span>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="9" class="empty">Todavía no se leyó ningún certificado con IA.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% if pagina.has_other_pages %}<nav class="pager" aria-label="Páginas">
+  {% if pagina.has_previous %}<a class="btn sm" href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+  <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+  {% if pagina.has_next %}<a class="btn sm" href="?page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}
+</nav>{% endif %}</div>
+{% endblock %}

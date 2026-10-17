@@ -13,6 +13,7 @@ from apps.equipos.acceso import equipos_visibles
 from apps.equipos.models import ORDEN_CRITICIDAD, Equipo, EstadoEquipo
 from apps.plan.models import MESES, EstadoEjecucion, PlanAnual
 from apps.servicios.calculos import Estado
+from apps.servicios.intervalo import ACORTAR_TXT, ALARGAR_TXT, MANTENER, sugerencia_para
 
 FORMATOS = ("csv", "xlsx")
 HORIZONTES = (30, 60, 90)
@@ -139,6 +140,36 @@ def vencimientos(request):
                   f"Calibraciones que vencen entre el {hoy:%Y-%m-%d} y el {limite:%Y-%m-%d}"
                   + (", más las ya vencidas." if con_vencidos else "."),
                   ENC_ESTADO + ["Tramo"], filas, f"vencimientos_{dias}_dias_{hoy:%Y-%m-%d}", filtros, resumen)
+
+
+# --- Revisión de intervalos de calibración ---------------------------------------------------------------
+
+ENC_INTERVALOS = ["Código", "Equipo", "Responsable", "Intervalo actual (meses)", "Intervalo sugerido (meses)",
+                  "Sugerencia", "Uso de la tolerancia (%)", "Deriva (puntos por año)", "Motivo"]
+CAMBIOS = {ACORTAR_TXT: "Acortar", ALARGAR_TXT: "Alargar", MANTENER: "Mantener"}
+
+
+@login_required
+def intervalos(request):
+    """Sugerencia de intervalo para cada equipo según su uso de la tolerancia y su deriva (ILAC-G24)."""
+    hoy = timezone.localdate()
+    ver = request.GET.get("ver", "cambios")
+    qs = equipos_visibles(request.user, Equipo.objects.select_related("responsable")).exclude(estado=EstadoEquipo.BAJA)
+    filas = []
+    for e in qs.order_by("codigo"):
+        s = sugerencia_para(e)
+        if s.cambio not in CAMBIOS or (ver == "cambios" and s.cambio == MANTENER):
+            continue
+        filas.append([e.codigo, e.descripcion, str(e.responsable), s.actual, s.meses, CAMBIOS[s.cambio],
+                      s.uso_pct, s.deriva_pct, s.motivo])
+    orden = {"Acortar": 0, "Alargar": 1, "Mantener": 2}
+    filas.sort(key=lambda f: (orden[f[5]], f[0]))
+    filtros = render_to_string("reportes/_filtro_intervalos.html", {"ver": ver})
+    return _tabla(request, "Revisión de intervalos de calibración",
+                  "Sugerencia según cuánto de la tolerancia usa cada equipo y cuánto deriva entre calibraciones. "
+                  "El intervalo lo cambia una persona en la ficha del equipo.",
+                  ENC_INTERVALOS, filas, f"intervalos_{hoy:%Y-%m-%d}", filtros,
+                  [(t, sum(1 for f in filas if f[5] == t)) for t in ("Acortar", "Alargar")])
 
 
 # --- RF-38: ejecución por lote y avance presupuestario --------------------------------------------------

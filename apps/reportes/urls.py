@@ -10,4 +10,5 @@ urlpatterns = [
     path("estado/", views.estado, name="estado"),
     path("vencimientos/", views.vencimientos, name="vencimientos"),
     path("ejecucion/", views.ejecucion, name="ejecucion"),
+    path("intervalos/", views.intervalos, name="intervalos"),
 ]

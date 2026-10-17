@@ -233,3 +233,28 @@ class DecisionNoApto(ModeloVersionado):
 
     def __str__(self):
         return f"{self.get_decision_display()} · {self.servicio}"
+
+
+class LecturaIA(models.Model):
+    """Cada lectura de un certificado con IA, con lo que costó. Sirve para controlar el gasto."""
+
+    creado = models.DateTimeField("fecha", auto_now_add=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+",
+                                verbose_name="usuario")
+    equipo = models.ForeignKey("equipos.Equipo", on_delete=models.PROTECT, related_name="+", verbose_name="equipo")
+    archivo = models.CharField("archivo", max_length=200)
+    hojas = models.PositiveSmallIntegerField("hojas", null=True, blank=True)
+    modelo = models.CharField("modelo", max_length=60)
+    tokens_entrada = models.PositiveIntegerField("tokens de entrada", default=0)
+    tokens_salida = models.PositiveIntegerField("tokens de salida", default=0)
+    costo_usd = models.DecimalField("costo (USD)", max_digits=8, decimal_places=4, null=True, blank=True)
+    exito = models.BooleanField("leído", default=False)
+    mensaje = models.CharField("mensaje", max_length=300, blank=True)
+
+    class Meta:
+        verbose_name = "lectura con IA"
+        verbose_name_plural = "lecturas con IA"
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"{self.archivo} ({self.creado:%Y-%m-%d})"

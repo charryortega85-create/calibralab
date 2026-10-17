@@ -173,3 +173,19 @@ EXTENSIONES_PERMITIDAS = ["pdf", "jpg", "jpeg", "png", "webp", "doc", "docx", "x
 URL_SISTEMA = env("URL_SISTEMA", "http://localhost:8000")
 # Firma de los códigos QR. Si se cambia, los QR ya impresos dejan de abrir la consulta.
 QR_CLAVE = env("QR_CLAVE", SECRET_KEY)
+
+# --- Lectura de certificados con IA (opcional) -----------------------------------------
+# Se activa solo si hay una clave de la API de Anthropic. El contenido del certificado se
+# envía a ese servicio; una persona revisa siempre los datos antes de guardar.
+IA_CLAVE = env("ANTHROPIC_API_KEY", "")
+IA_MODELO = env("IA_MODELO", "claude-opus-5-5")
+IA_MAXIMO_HOJAS = int(env("IA_MAXIMO_HOJAS", "3"))
+# Dólares por millón de tokens (entrada, salida), para el registro de costos.
+IA_PRECIOS = {
+    "claude-opus-5-5": (4.00, 20.00),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-opus-4-8": (5.00, 25.00),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-haiku-5-5": (0.10, 0.50),
+}

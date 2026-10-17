@@ -48,7 +48,9 @@
       <div><dt>Resolución</dt><dd>{{ e.resolucion|num }}</dd></div>
       <div><dt>Capacidad o alcance</dt><dd>{{ e.capacidad|num }}</dd></div>
       <div><dt>Tolerancia</dt><dd>{{ e.tolerancia|default:"—" }}</dd></div>
-      <div><dt>Intervalo de calibración</dt><dd>{{ e.intervalo_meses }} meses</dd></div>
+      <div><dt>Intervalo de calibración</dt><dd>{{ e.intervalo_meses }} meses
+        {% if intervalo.cambio == "acortar" or intervalo.cambio == "alargar" %}<span class="badge {% if intervalo.cambio == 'acortar' %}b-warn{% else %}b-info{% endif %}" title="{{ intervalo.motivo }}">Sugerido: {{ intervalo.meses }} meses</span>{% endif %}
+        {% if intervalo.cambio != "sin_datos" %}<span class="cell-sub">{{ intervalo.motivo }}{% if intervalo.cambio != "mantener" and user.puede_editar %} <a class="link" href="{% url 'equipos:editar' e.pk %}">Cambiar el intervalo</a>{% endif %}</span>{% endif %}</dd></div>
     </dl>
     <h3 style="font-size:14px;margin:16px 0 6px">Puntos a calibrar</h3>
     {% if puntos %}<ul class="histo">{% for p in puntos %}<li>{{ p.valor_nominal|num }} {{ e.unidad }} · EMP {{ p.emp_texto }}</li>{% endfor %}</ul>{% else %}<p class="cell-sub">Sin puntos definidos. Edita el equipo para agregarlos antes de calibrar.</p>{% endif %}

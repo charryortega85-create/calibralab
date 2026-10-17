@@ -14,6 +14,14 @@
     <div class="form-grid">{% for campo in campos %}{% include "_campo.html" %}{% endfor %}</div>
     {% if campos.0.name == "tipo" and servicio.certificado %}<p class="cell-sub" style="margin-top:8px">Certificado actual: <a class="link" href="{% url 'core:archivo' servicio.certificado.name %}">{{ servicio.certificado.name }}</a>. Si subes otro, el anterior se conserva en la versión previa.</p>{% endif %}
   </fieldset></div></div>
+  {% if forloop.counter == 1 and ia %}
+  <div class="card ia-caja" id="ia-caja" data-url="{% url 'servicios:leer_certificado' %}?equipo={{ equipo.pk }}"><div class="card-b">
+    <div class="ia-cab"><div><b>Completar con IA</b>
+      <p class="cell-sub">Elige arriba el archivo del certificado (PDF o foto, hasta {{ ia_hojas }} hojas) y pulsa el botón. La IA completa los datos y tú los revisas antes de guardar. El archivo se envía al servicio de IA de Anthropic.</p></div>
+      <button class="btn" type="button" id="ia-leer">{% icono "i-file" %}Leer el certificado con IA</button></div>
+    <div id="ia-estado" class="ia-estado" role="status" aria-live="polite" hidden></div>
+  </div></div>
+  {% endif %}
   {% if forloop.counter == 2 %}
   <div class="card" data-para="calibracion"><div class="card-b"><fieldset class="grupo"><legend>Resultados por punto</legend>
     <p class="cell-sub" style="margin-bottom:10px">Para cada punto, escribe el valor que marcó el equipo <b>o</b> el error que informa el certificado. El sistema calcula el error, lo compara con el EMP y marca los puntos que no cumplen (RN-04). Deja vacío un punto que no se calibró.</p>
@@ -53,10 +61,61 @@
   function aplicar(){
     var cal = tipo.value === 'calibracion';
     document.querySelectorAll('[data-para]').forEach(function(el){
+      if (el.dataset.para === 'certificado') return;  // los datos del certificado valen para todos los tipos
       el.hidden = (el.dataset.para === 'calibracion') !== cal;
     });
   }
   if (tipo) { tipo.addEventListener('change', aplicar); aplicar(); }
+})();
+
+/* Lectura del certificado con IA: completa los campos y marca en color lo que llenó. */
+(function(){
+  var caja = document.getElementById('ia-caja');
+  if (!caja) return;
+  var boton = document.getElementById('ia-leer'), estado = document.getElementById('ia-estado');
+  var form = document.getElementById('form-servicio');
+  function mostrar(html, clase){ estado.hidden = false; estado.className = 'ia-estado ' + (clase || ''); estado.innerHTML = html; }
+  function esc(t){ var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  function poner(nombre, valor){
+    var el = form.elements[nombre];
+    if (!el || valor === undefined || valor === null) return false;
+    el.value = valor;
+    el.classList.add('ia-lleno');
+    el.dispatchEvent(new Event('change', {bubbles: true}));
+    return true;
+  }
+  boton.addEventListener('click', function(){
+    var archivo = form.elements['certificado'] && form.elements['certificado'].files[0];
+    if (!archivo) { mostrar('Primero elige el archivo del certificado en el campo «Archivo del certificado».', 'mal'); return; }
+    var datos = new FormData();
+    datos.append('certificado', archivo);
+    datos.append('csrfmiddlewaretoken', form.elements['csrfmiddlewaretoken'].value);
+    boton.disabled = true;
+    mostrar('Leyendo el certificado… puede tardar hasta un minuto.');
+    fetch(caja.dataset.url, {method: 'POST', body: datos, credentials: 'same-origin'})
+      .then(function(r){ return r.json().then(function(j){ return {ok: r.ok, j: j}; }); })
+      .then(function(res){
+        if (!res.ok) { mostrar(esc(res.j.error || 'No se pudo leer el certificado.'), 'mal'); return; }
+        var j = res.j, n = 0;
+        Object.keys(j.campos).forEach(function(k){ if (poner(k, j.campos[k])) n++; });
+        j.puntos.forEach(function(p){
+          ['valor_referencia', 'valor_leido', 'error_informado', 'incertidumbre'].forEach(function(c){
+            var el = form.elements['puntos-' + p.fila + '-' + c];
+            if (el && c !== 'valor_referencia') el.value = '';
+            if (p[c] !== undefined && poner('puntos-' + p.fila + '-' + c, p[c])) n++;
+          });
+        });
+        j.patrones.forEach(function(p, i){
+          Object.keys(p).forEach(function(c){ if (poner('patrones-' + i + '-' + c, p[c])) n++; });
+        });
+        var html = '<b>Se completaron ' + n + ' datos.</b> Revisa los campos marcados en color antes de guardar.';
+        if (j.costo_usd) html += ' <span class="cell-sub">Costo de la lectura: USD ' + esc(j.costo_usd) + '.</span>';
+        if (j.avisos.length) html += '<ul>' + j.avisos.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>';
+        mostrar(html, 'bien');
+      })
+      .catch(function(){ mostrar('No se pudo conectar con el sistema. Intenta de nuevo.', 'mal'); })
+      .finally(function(){ boton.disabled = false; });
+  });
 })();
 </script>
 {% endblock %}
