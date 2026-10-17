@@ -100,3 +100,9 @@ def test_administrador_asigna_areas_al_usuario(cliente_de, admin, tecnico, areas
 def test_formulario_de_usuario_muestra_las_areas(cliente_de, admin, areas):
     html = cliente_de(admin).get(reverse("cuentas:usuario_crear")).content.decode()
     assert 'type="checkbox" name="areas"' in html and "Microbiología" in html
+
+
+def test_consulta_ve_todas_las_areas_aunque_tenga_areas_marcadas(cliente_de, escenario, consulta, areas):
+    consulta.areas.set([areas["quimica"]])
+    html = cliente_de(consulta).get(reverse("equipos:lista")).content.decode()
+    assert "EQ-0001" in html and "EQ-0002" in html
