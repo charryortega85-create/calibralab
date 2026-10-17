@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from apps.catalogos.models import Marca, Ubicacion, Unidad
+from apps.catalogos.models import Area, Marca, Ubicacion, Unidad
 from apps.core.formularios import FechaInput, MotivoMixin
 from apps.cuentas.models import Usuario
 
@@ -17,7 +17,7 @@ class EquipoForm(MotivoMixin, forms.ModelForm):
     # RNF-16: el formulario sigue los grupos de la ficha.
     grupos = [
         ("Identificación", ["codigo", "patrimonio", "descripcion", "marca", "modelo", "numero_serie",
-                            "ubicacion", "responsable", "asignado_a"]),
+                            "area", "ubicacion", "responsable", "asignado_a"]),
         ("Ficha técnica", ["unidad", "rango_min", "rango_max", "resolucion", "capacidad", "tolerancia",
                            "criticidad", "intervalo_meses"]),
         ("Otros datos", ["observaciones", "motivo"]),
@@ -25,20 +25,30 @@ class EquipoForm(MotivoMixin, forms.ModelForm):
 
     class Meta:
         model = Equipo
-        fields = ["codigo", "patrimonio", "descripcion", "marca", "modelo", "numero_serie", "ubicacion",
+        fields = ["codigo", "patrimonio", "descripcion", "marca", "modelo", "numero_serie", "area", "ubicacion",
                   "responsable", "asignado_a", "unidad", "rango_min", "rango_max", "resolucion", "capacidad",
                   "tolerancia", "criticidad", "intervalo_meses", "observaciones"]
         widgets = {"observaciones": forms.Textarea(attrs={"rows": 3})}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
         i = self.instance
+        # Cada usuario elige entre sus áreas; si hay áreas cargadas, el área es obligatoria.
+        areas = Area.objects.select_related("laboratorio")
+        if usuario is not None and not usuario.ve_todas_las_areas:
+            areas = areas.filter(pk__in=usuario.areas.all())
+        self.fields["area"].queryset = activos_o_actual(areas, i.area_id)
+        self.fields["area"].required = Area.objects.exists()
         self.fields["marca"].queryset = activos_o_actual(Marca.objects.all(), i.marca_id)
         self.fields["ubicacion"].queryset = activos_o_actual(Ubicacion.objects.all(), i.ubicacion_id)
         self.fields["unidad"].queryset = activos_o_actual(Unidad.objects.all(), i.unidad_id)
         self.fields["responsable"].queryset = Usuario.objects.filter(is_active=True).exclude(rol="consulta") | (
             Usuario.objects.filter(pk=i.responsable_id) if i.responsable_id else Usuario.objects.none())
         asignable = Equipo.objects.exclude(estado=EstadoEquipo.BAJA)
+        if usuario is not None:
+            from .acceso import equipos_visibles
+
+            asignable = equipos_visibles(usuario, asignable)
         self.fields["asignado_a"].queryset = asignable.exclude(pk=i.pk) if i.pk else asignable
 
     def clean_codigo(self):

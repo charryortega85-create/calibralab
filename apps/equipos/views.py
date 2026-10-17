@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.alertas.estado import con_estado
-from apps.catalogos.models import Marca, Ubicacion
+from apps.catalogos.models import Area, Marca, Ubicacion
 from apps.core.exportar import exportar, libro_excel
 from apps.core.qr import qr_svg, url_publica_equipo
 from apps.cuentas.models import Configuracion, Usuario
@@ -20,22 +20,26 @@ from apps.servicios.calculos import Estado
 from apps.servicios.models import TipoServicio
 
 from . import importar as imp
+from .acceso import equipos_visibles
 from .forms import CambioEstadoForm, DocumentoForm, EquipoForm, ImportarForm, PuntosFormSet
 from .models import Criticidad, Equipo, EstadoEquipo
 
-FILTROS = ("q", "marca", "ubicacion", "responsable", "lote", "criticidad", "estado", "estado_cal")
+FILTROS = ("q", "area", "marca", "ubicacion", "responsable", "lote", "criticidad", "estado", "estado_cal")
 
 
 def filtrar(request):
     """RF-10: buscar y filtrar equipos por todos los criterios del requerimiento."""
     g = request.GET
     f = {k: g.get(k, "").strip() for k in FILTROS}
-    qs = con_estado(Equipo.objects.select_related("marca", "ubicacion", "responsable", "unidad"))
+    qs = con_estado(equipos_visibles(request.user, Equipo.objects.select_related(
+        "marca", "ubicacion", "responsable", "unidad", "area__laboratorio")))
     if f["q"]:
         qs = qs.filter(Q(codigo__icontains=f["q"]) | Q(descripcion__icontains=f["q"]) |
                        Q(numero_serie__icontains=f["q"]) | Q(patrimonio__icontains=f["q"]) |
                        Q(modelo__icontains=f["q"]) | Q(servicios__numero_certificado__icontains=f["q"])).distinct()
-    for campo in ("marca", "ubicacion", "responsable"):
+    if f["area"].startswith("lab-") and f["area"][4:].isdigit():
+        qs = qs.filter(area__laboratorio_id=f["area"][4:])
+    for campo in ("area", "marca", "ubicacion", "responsable"):
         if f[campo].isdigit():
             qs = qs.filter(**{f"{campo}_id": f[campo]})
     if f["lote"].isdigit():
@@ -64,18 +68,25 @@ def lista(request):
     consulta.pop("page", None)
     return render(request, "equipos/lista.html", {
         "pagina": pagina, "f": f, "consulta": consulta.urlencode(), "total": pagina.paginator.count,
-        "marcas": Marca.objects.all(), "ubicaciones": Ubicacion.objects.all(),
+        "areas": areas_del_usuario(request.user), "marcas": Marca.objects.all(), "ubicaciones": Ubicacion.objects.all(),
         "responsables": Usuario.objects.exclude(rol="consulta"), "lotes": Lote.objects.all(),
         "criticidades": Criticidad.choices, "estados": EstadoEquipo.choices,
         "estados_cal": Estado.ETIQUETAS.items(), "hoy": timezone.localdate(),
     })
 
 
+def areas_del_usuario(usuario):
+    areas = Area.objects.select_related("laboratorio")
+    return areas if usuario.ve_todas_las_areas else areas.filter(pk__in=usuario.areas.all())
+
+
 def exportar_inventario(qs, formato):
-    enc = ["Código", "Patrimonio", "Descripción", "Marca", "Modelo", "N.º de serie", "Ubicación", "Responsable",
+    enc = ["Código", "Patrimonio", "Descripción", "Marca", "Modelo", "N.º de serie", "Laboratorio", "Área",
+           "Ubicación", "Responsable",
            "Unidad", "Rango desde", "Rango hasta", "Resolución", "Capacidad", "Tolerancia", "Criticidad",
            "Intervalo (meses)", "Estado actual", "Próxima calibración", "Estado de calibración"]
-    filas = [[e.codigo, e.patrimonio, e.descripcion, e.marca.nombre, e.modelo, e.numero_serie, e.ubicacion.nombre,
+    filas = [[e.codigo, e.patrimonio, e.descripcion, e.marca.nombre, e.modelo, e.numero_serie,
+              e.area.laboratorio.nombre if e.area else "", e.area.nombre if e.area else "", e.ubicacion.nombre,
               e.responsable.username, e.unidad.simbolo, e.rango_min, e.rango_max, e.resolucion, e.capacidad,
               e.tolerancia, e.get_criticidad_display(), e.intervalo_meses, e.get_estado_display(), e.proxima,
               Estado.ETIQUETAS[e.estado_cal]] for e in qs]
@@ -84,8 +95,8 @@ def exportar_inventario(qs, formato):
 
 @login_required
 def ficha(request, pk):
-    equipo = get_object_or_404(con_estado(Equipo.objects.select_related(
-        "marca", "ubicacion", "responsable", "unidad", "asignado_a")), pk=pk)
+    equipo = get_object_or_404(con_estado(equipos_visibles(request.user, Equipo.objects.select_related(
+        "marca", "ubicacion", "responsable", "unidad", "asignado_a", "area__laboratorio"))), pk=pk)
     servicios = equipo.servicios.select_related("proveedor", "registrado_por").prefetch_related("puntos")
     ultima_cal = servicios.filter(tipo=TipoServicio.CALIBRACION).first()
     vigencias = [s for s in servicios.exclude(tipo=TipoServicio.CALIBRACION)
@@ -103,7 +114,7 @@ def ficha(request, pk):
 
 
 def _guardar_equipo(request, equipo=None):
-    form = EquipoForm(request.POST or None, instance=equipo)
+    form = EquipoForm(request.POST or None, instance=equipo, usuario=request.user)
     formset = PuntosFormSet(request.POST or None, instance=equipo or Equipo(), prefix="puntos")
     if request.method == "POST":
         form_ok = form.is_valid()
@@ -127,13 +138,13 @@ def crear(request):
 
 @rol_requerido(*EDITORES)
 def editar(request, pk):
-    return _guardar_equipo(request, get_object_or_404(Equipo, pk=pk))
+    return _guardar_equipo(request, get_object_or_404(equipos_visibles(request.user), pk=pk))
 
 
 @rol_requerido(*EDITORES)
 def cambiar_estado(request, pk):
     """RF-11 y RNF-16: cambio de estado con confirmación, fecha, motivo y persona."""
-    equipo = get_object_or_404(Equipo, pk=pk)
+    equipo = get_object_or_404(equipos_visibles(request.user), pk=pk)
     form = CambioEstadoForm(request.POST or None, equipo=equipo, initial={"fecha": timezone.localdate()})
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
@@ -151,7 +162,7 @@ def cambiar_estado(request, pk):
 @rol_requerido(*EDITORES)
 def subir_documento(request, pk):
     """RF-13: fotografía y documentos del equipo."""
-    equipo = get_object_or_404(Equipo, pk=pk)
+    equipo = get_object_or_404(equipos_visibles(request.user), pk=pk)
     form = DocumentoForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         doc = form.save(commit=False)
@@ -169,7 +180,7 @@ def subir_documento(request, pk):
 @login_required
 def etiqueta(request, pk):
     """RF-14: etiqueta con código QR; al escanearla se ven los datos del equipo sin iniciar sesión."""
-    equipo = get_object_or_404(con_estado(Equipo.objects.all()), pk=pk)
+    equipo = get_object_or_404(con_estado(equipos_visibles(request.user)), pk=pk)
     url = url_publica_equipo(equipo)
     svg = qr_svg(url)
     return render(request, "equipos/etiqueta.html", {"e": equipo, "svg": svg, "url": url,
@@ -190,7 +201,7 @@ def importar(request):
         filas = [imp.Fila(n, d) for n, d in datos]
         try:
             with transaction.atomic():
-                creados = imp.guardar(filas)
+                creados = imp.guardar(filas, request.user)
         except ValueError as e:
             messages.error(request, f"No se guardó ningún equipo. {e}")
             return redirect("equipos:importar")
@@ -201,7 +212,7 @@ def importar(request):
     filas = None
     if request.method == "POST" and form.is_valid():
         try:
-            filas = imp.validar(imp.leer(form.cleaned_data["archivo"]))
+            filas = imp.validar(imp.leer(form.cleaned_data["archivo"]), request.user)
         except Exception:  # archivo dañado o con otro formato
             form.add_error("archivo", "No se pudo leer el archivo. Revisa que sea la plantilla en .xlsx o .csv.")
         if filas is not None:
@@ -218,7 +229,7 @@ def importar(request):
 def plantilla(request):
     wb = libro_excel([
         ("equipos", imp.ENCABEZADOS, [["EQ-0100", "PAT-123", "Balanza analítica 220 g", "Marca A", "BA-220",
-                                       "SN-0001", "Sala de balanzas", "mperez", "g", "0", "220", "0,0001", "220",
+                                       "SN-0001", "Laboratorio Central", "Metrología", "Sala de balanzas", "mperez", "g", "0", "220", "0,0001", "220",
                                        "", "Alta", "12"]]),
         ("instrucciones", ["Columna", "Qué escribir"], [[c, d] for c, _, d in imp.COLUMNAS]),
     ])

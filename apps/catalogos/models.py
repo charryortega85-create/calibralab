@@ -9,6 +9,35 @@ class Marca(Catalogo):
         verbose_name_plural = "marcas"
 
 
+class Laboratorio(Catalogo):
+    class Meta(Catalogo.Meta):
+        verbose_name = "laboratorio"
+        verbose_name_plural = "laboratorios"
+
+    @property
+    def filtro(self):
+        """Valor del filtro de la lista de equipos que trae todas sus áreas."""
+        return f"lab-{self.pk}"
+
+
+class Area(Catalogo):
+    """Área de un laboratorio. Cada equipo pertenece a un área y cada usuario trabaja en una o varias."""
+
+    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.PROTECT, related_name="areas",
+                                    verbose_name="laboratorio")
+    nombre = models.CharField("nombre", max_length=120)
+
+    class Meta(Catalogo.Meta):
+        verbose_name = "área"
+        verbose_name_plural = "áreas"
+        ordering = ["laboratorio__nombre", "nombre"]
+        constraints = [models.UniqueConstraint(fields=["laboratorio", "nombre"], name="area_unica_por_laboratorio",
+                                               violation_error_message="Ese laboratorio ya tiene un área con ese nombre.")]
+
+    def __str__(self):
+        return f"{self.laboratorio} · {self.nombre}"
+
+
 class Ubicacion(Catalogo):
     class Meta(Catalogo.Meta):
         verbose_name = "ubicación"

@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 
 from .models import Configuracion, Usuario
@@ -14,7 +15,21 @@ class IngresoForm(AuthenticationForm):
     }
 
 
-class UsuarioCrearForm(forms.ModelForm):
+class AreasMixin:
+    """Las áreas en las que trabaja la persona. Si no se marca ninguna, ve todos los equipos."""
+
+    def _preparar_areas(self):
+        from apps.catalogos.models import Area
+
+        if not Area.objects.exists():
+            self.fields.pop("areas")
+            return
+        actuales = self.instance.areas.all() if self.instance.pk else Area.objects.none()
+        self.fields["areas"].queryset = Area.objects.select_related("laboratorio").filter(
+            Q(activo=True) | Q(pk__in=actuales))
+
+
+class UsuarioCrearForm(AreasMixin, forms.ModelForm):
     password1 = forms.CharField(
         label="Contraseña inicial",
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
@@ -27,9 +42,14 @@ class UsuarioCrearForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ["nombre", "username", "email", "rol"]
+        fields = ["nombre", "username", "email", "rol", "areas"]
         labels = {"username": "Usuario"}
+        widgets = {"areas": forms.CheckboxSelectMultiple}
         help_texts = {"username": "Con este nombre ingresa al sistema. Sin espacios."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._preparar_areas()
 
     def clean(self):
         datos = super().clean()
@@ -50,18 +70,21 @@ class UsuarioCrearForm(forms.ModelForm):
         usuario.set_password(self.cleaned_data["password1"])
         if commit:
             usuario.save()
+            self.save_m2m()
         return usuario
 
 
-class UsuarioEditarForm(forms.ModelForm):
+class UsuarioEditarForm(AreasMixin, forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = ["nombre", "email", "rol", "is_active"]
+        fields = ["nombre", "email", "rol", "areas", "is_active"]
+        widgets = {"areas": forms.CheckboxSelectMultiple}
         labels = {"is_active": "Activo"}
         help_texts = {"is_active": "Un usuario desactivado no puede ingresar, pero su nombre se conserva en los historiales."}
 
     def __init__(self, *args, editor=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self._preparar_areas()
         # Un administrador no puede quitarse a sí mismo el rol ni desactivarse: se quedaría sin acceso.
         if editor is not None and editor.pk == self.instance.pk:
             self.fields["rol"].disabled = True

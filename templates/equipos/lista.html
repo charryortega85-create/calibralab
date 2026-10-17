@@ -22,6 +22,11 @@
     {% for v, t in criticidades %}<option value="{{ v }}"{% if f.criticidad == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
   <div class="field"><label for="marca">Marca</label><select id="marca" name="marca"><option value="">Todas</option>
     {% for m in marcas %}<option value="{{ m.pk }}"{% if f.marca == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  {% if areas %}<div class="field"><label for="area">Laboratorio y área</label><select id="area" name="area"><option value="">Todos</option>
+    {% regroup areas by laboratorio as grupos %}{% for g in grupos %}<optgroup label="{{ g.grouper }}">
+      <option value="{{ g.grouper.filtro }}"{% if f.area == g.grouper.filtro %} selected{% endif %}>Todo {{ g.grouper }}</option>
+      {% for a in g.list %}<option value="{{ a.pk }}"{% if f.area == a.pk|stringformat:"d" %} selected{% endif %}>{{ a.nombre }}</option>{% endfor %}
+    </optgroup>{% endfor %}</select></div>{% endif %}
   <div class="field"><label for="ubicacion">Ubicación</label><select id="ubicacion" name="ubicacion"><option value="">Todas</option>
     {% for m in ubicaciones %}<option value="{{ m.pk }}"{% if f.ubicacion == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
   <div class="field"><label for="responsable">Responsable</label><select id="responsable" name="responsable"><option value="">Todos</option>
@@ -33,13 +38,13 @@
 </form>
 <div class="card">
   <div class="table-wrap"><table class="tbl">
-    <thead><tr><th>Código</th><th class="col-eq">Equipo</th><th>Ubicación</th><th>Responsable</th><th>Criticidad</th><th>Próxima calibración</th><th>Estado de calibración</th></tr></thead>
+    <thead><tr><th>Código</th><th class="col-eq">Equipo</th><th>Área y ubicación</th><th>Responsable</th><th>Criticidad</th><th>Próxima calibración</th><th>Estado de calibración</th></tr></thead>
     <tbody>
     {% for e in pagina %}
       <tr>
         <td><a class="code link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a></td>
         <td><span class="cell-main">{{ e.descripcion }}{% if e.estado != "en_servicio" %}{{ e|estado_equipo }}{% endif %}</span><span class="cell-sub">{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }}</span></td>
-        <td>{{ e.ubicacion }}</td>
+        <td>{% if e.area %}<span class="cell-main">{{ e.area.nombre }}</span><span class="cell-sub">{{ e.area.laboratorio }} · {{ e.ubicacion }}</span>{% else %}{{ e.ubicacion }}{% endif %}</td>
         <td>{{ e.responsable }}</td>
         <td>{{ e.criticidad|criticidad }}</td>
         <td class="nw">{% if e.proxima %}{{ e.proxima|date:"Y-m-d" }}{% else %}—{% endif %}</td>

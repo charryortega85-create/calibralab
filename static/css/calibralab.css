@@ -368,6 +368,9 @@ a{color:inherit;text-decoration:none}
 .field input:focus,.field select:focus,.filters input:focus,.filters select:focus{outline:2px solid var(--brand-2);outline-offset:1px}
 .field input[type=checkbox]{width:20px;height:20px;accent-color:var(--brand)}
 .field .check{display:flex;align-items:center;gap:10px;font-weight:600}
+.field .checks{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px 16px}
+.field .checks legend{font-weight:600;margin-bottom:8px;padding:0}
+.field .checks .check{font-weight:500}
 .field .help{font-size:13px;color:var(--text-3)}
 .field .help ul{margin:4px 0 0;padding-left:18px}
 .field .err{font-size:13px;color:var(--bad);font-weight:600}

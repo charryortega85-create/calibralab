@@ -9,7 +9,7 @@ class CatalogosConfig(AppConfig):
     def ready(self):
         from apps.auditoria.registro import auditar
 
-        from .models import Marca, Proveedor, Ubicacion, Unidad
+        from .models import Area, Laboratorio, Marca, Proveedor, Ubicacion, Unidad
 
-        for modelo in (Marca, Ubicacion, Unidad, Proveedor):
+        for modelo in (Laboratorio, Area, Marca, Ubicacion, Unidad, Proveedor):
             auditar(modelo, excluir={"creado", "modificado"}, campos_estado={"activo"})

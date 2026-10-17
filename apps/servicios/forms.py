@@ -161,8 +161,10 @@ class DecisionForm(forms.ModelForm):
 class ElegirEquipoForm(forms.Form):
     equipo = forms.ModelChoiceField(queryset=None, label="Equipo")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
+        from apps.equipos.acceso import equipos_visibles
         from apps.equipos.models import Equipo, EstadoEquipo
 
-        self.fields["equipo"].queryset = Equipo.objects.exclude(estado=EstadoEquipo.BAJA)
+        qs = Equipo.objects.exclude(estado=EstadoEquipo.BAJA)
+        self.fields["equipo"].queryset = equipos_visibles(usuario, qs) if usuario else qs

@@ -34,6 +34,7 @@
   {% if e.patrimonio %}<div><dt>N.º de patrimonio</dt><dd>{{ e.patrimonio }}</dd></div>{% endif %}
   <div><dt>Marca y modelo</dt><dd>{{ e.marca }} {{ e.modelo }}</dd></div>
   <div><dt>N.º de serie</dt><dd>{{ e.numero_serie }}</dd></div>
+  {% if e.area %}<div><dt>Laboratorio y área</dt><dd>{{ e.area }}</dd></div>{% endif %}
   <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
   <div><dt>Rango</dt><dd>{% if e.rango_min is not None or e.rango_max is not None %}{{ e.rango_min|num }} a {{ e.rango_max|num }} {{ e.unidad }}{% else %}—{% endif %}</dd></div>
   <div><dt>Resolución</dt><dd>{% if e.resolucion is not None %}{{ e.resolucion|num }} {{ e.unidad }}{% else %}—{% endif %}</dd></div>

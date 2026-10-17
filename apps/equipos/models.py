@@ -47,6 +47,8 @@ class Equipo(ModeloVersionado):
     marca = models.ForeignKey("catalogos.Marca", on_delete=models.PROTECT, verbose_name="marca")
     modelo = models.CharField("modelo", max_length=80)
     numero_serie = models.CharField("n.º de serie", max_length=80)
+    area = models.ForeignKey("catalogos.Area", on_delete=models.PROTECT, null=True, blank=True, related_name="equipos",
+                             verbose_name="laboratorio y área")
     ubicacion = models.ForeignKey("catalogos.Ubicacion", on_delete=models.PROTECT, verbose_name="ubicación")
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="equipos",
                                     verbose_name="responsable")

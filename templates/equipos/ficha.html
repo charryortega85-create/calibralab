@@ -4,7 +4,7 @@
 <div class="page-head">
   <div><div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> / {{ e.codigo }}</div>
   <h1>{{ e.codigo }} · {{ e.descripcion }}</h1>
-  <p>{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }} · {{ e.ubicacion }}</p></div>
+  <p>{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }} · {% if e.area %}{{ e.area }} · {% endif %}{{ e.ubicacion }}</p></div>
   <div class="actions">
     <a class="btn" href="{% url 'reportes:hoja_vida' e.pk %}">Hoja de vida (PDF)</a>
     <a class="btn" href="{% url 'equipos:etiqueta' e.pk %}">Etiqueta QR</a>
@@ -35,6 +35,7 @@
       <div><dt>Marca</dt><dd>{{ e.marca }}</dd></div>
       <div><dt>Modelo</dt><dd>{{ e.modelo }}</dd></div>
       <div><dt>N.º de serie</dt><dd>{{ e.numero_serie }}</dd></div>
+      <div><dt>Laboratorio y área</dt><dd>{{ e.area|default:"—" }}</dd></div>
       <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
       <div><dt>Responsable</dt><dd>{{ e.responsable }}</dd></div>
       <div><dt>Asignado al equipo</dt><dd>{% if e.asignado_a %}<a class="link" href="{{ e.asignado_a.get_absolute_url }}">{{ e.asignado_a }}</a>{% else %}—{% endif %}</dd></div>

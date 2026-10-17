@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from apps.alertas.estado import activos, con_estado
 from apps.core.exportar import exportar, libro_excel, respuesta_csv
+from apps.equipos.acceso import equipos_visibles
 from apps.equipos.models import ORDEN_CRITICIDAD, Equipo, EstadoEquipo
 from apps.plan.models import MESES, EstadoEjecucion, PlanAnual
 from apps.servicios.calculos import Estado
@@ -21,7 +22,7 @@ URGENCIA = [Estado.VENCIDO, Estado.SIN_REGISTRO, Estado.POR_VENCER, Estado.VIGEN
 @login_required
 def indice(request):
     return render(request, "reportes/indice.html", {
-        "planes": PlanAnual.objects.all(), "equipos": Equipo.objects.only("pk", "codigo", "descripcion"),
+        "planes": PlanAnual.objects.all(), "equipos": equipos_visibles(request.user).only("pk", "codigo", "descripcion"),
         "horizontes": HORIZONTES,
     })
 
@@ -44,8 +45,8 @@ def datos_hoja_vida(equipo):
 
 @login_required
 def hoja_vida(request, pk):
-    equipo = get_object_or_404(con_estado(Equipo.objects.select_related(
-        "marca", "ubicacion", "responsable", "unidad", "asignado_a")), pk=pk)
+    equipo = get_object_or_404(con_estado(equipos_visibles(request.user, Equipo.objects.select_related(
+        "marca", "ubicacion", "responsable", "unidad", "asignado_a", "area__laboratorio"))), pk=pk)
     contexto = datos_hoja_vida(equipo)
     if request.GET.get("formato") == "html":
         return render(request, "reportes/hoja_vida.html", {**contexto, "en_pantalla": True})
@@ -91,7 +92,7 @@ def estado(request):
     hoy = timezone.localdate()
     filtro = request.GET.get("estado", "")
     incluir_baja = request.GET.get("baja") == "1"
-    qs = con_estado(Equipo.objects.select_related("ubicacion", "responsable"))
+    qs = con_estado(equipos_visibles(request.user, Equipo.objects.select_related("ubicacion", "responsable")))
     if not incluir_baja:
         qs = qs.exclude(estado=EstadoEquipo.BAJA)
     if filtro in URGENCIA:
@@ -118,7 +119,7 @@ def vencimientos(request):
     dias = dias if dias in HORIZONTES else 90
     con_vencidos = request.GET.get("vencidos", "1") == "1"
     limite = hoy + timedelta(days=dias)
-    qs = activos(Equipo.objects.select_related("ubicacion", "responsable"), dia=hoy)
+    qs = activos(equipos_visibles(request.user, Equipo.objects.select_related("ubicacion", "responsable")), dia=hoy)
     equipos = [e for e in qs if (e.proxima and hoy <= e.proxima <= limite) or
                (con_vencidos and e.estado_cal == Estado.VENCIDO)]
     equipos.sort(key=lambda e: (e.proxima or date.min, ORDEN_CRITICIDAD.get(e.criticidad, 9), e.codigo))

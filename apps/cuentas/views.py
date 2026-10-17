@@ -33,7 +33,7 @@ class UsuarioListaView(SoloAdministradorMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        qs = Usuario.objects.all()
+        qs = Usuario.objects.prefetch_related("areas__laboratorio")
         self.q = self.request.GET.get("q", "").strip()
         self.rol = self.request.GET.get("rol", "")
         self.estado = self.request.GET.get("estado", "")

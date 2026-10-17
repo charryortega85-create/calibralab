@@ -13,6 +13,7 @@ from apps.catalogos.models import Proveedor
 from apps.core.exportar import exportar
 from apps.core.qr import qr_svg, url_publica_certificado
 from apps.cuentas.permisos import EDITORES, rol_requerido
+from apps.equipos.acceso import del_usuario, equipos_visibles
 from apps.equipos.models import Equipo, EstadoEquipo
 
 from .calculos import DatoFaltante
@@ -53,13 +54,14 @@ def _despues_de_guardar(request, servicio):
 def crear(request):
     equipo_id = request.GET.get("equipo")
     if not equipo_id:
-        elegir = ElegirEquipoForm(request.GET or None)
+        elegir = ElegirEquipoForm(request.GET or None, usuario=request.user)
         return render(request, "core/form.html", {
             "form": elegir, "titulo": "Registrar un servicio", "subtitulo": "Elige el equipo que recibió el servicio.",
             "migas": [("Servicios", reverse("servicios:lista"))], "boton": "Continuar", "metodo_get": True,
             "volver": reverse("servicios:lista"),
         })
-    equipo = get_object_or_404(Equipo.objects.exclude(estado=EstadoEquipo.BAJA), pk=equipo_id)
+    equipo = get_object_or_404(equipos_visibles(request.user, Equipo.objects.exclude(estado=EstadoEquipo.BAJA)),
+                               pk=equipo_id)
     puntos = _datos_iniciales(equipo)
     form = ServicioForm(request.POST or None, request.FILES or None, equipo=equipo,
                         initial={"fecha": timezone.localdate()})
@@ -98,7 +100,7 @@ def crear(request):
 @rol_requerido(*EDITORES)
 def corregir(request, pk):
     """RF-24: la corrección crea una versión nueva y conserva la anterior con fecha, usuario y motivo."""
-    servicio = get_object_or_404(Servicio.objects.select_related("equipo"), pk=pk)
+    servicio = get_object_or_404(del_usuario(request.user, Servicio.objects.select_related("equipo")), pk=pk)
     form = ServicioForm(request.POST or None, request.FILES or None, instance=servicio, equipo=servicio.equipo)
     formset = PuntosFormSet(request.POST or None, instance=servicio, prefix="puntos")
     patrones = patrones_formset(1)(request.POST or None, instance=servicio, prefix="patrones")
@@ -124,7 +126,8 @@ def corregir(request, pk):
 
 @login_required
 def detalle(request, pk):
-    s = get_object_or_404(Servicio.objects.select_related("equipo__unidad", "proveedor", "registrado_por"), pk=pk)
+    s = get_object_or_404(del_usuario(request.user, Servicio.objects.select_related(
+        "equipo__unidad", "proveedor", "registrado_por")), pk=pk)
     return render(request, "servicios/detalle.html", {
         "s": s, "puntos": s.puntos.all(), "versiones": s.versiones()[:30],
         "decision": getattr(s, "decision", None), "evaluacion": getattr(s, "evaluacion", None),
@@ -136,7 +139,8 @@ def detalle(request, pk):
 @rol_requerido(*EDITORES)
 def decision(request, pk):
     """RN-05 / RF-22: proponer «fuera de servicio», pedir confirmación y registrar quién decidió."""
-    s = get_object_or_404(Servicio.objects.select_related("equipo"), pk=pk, tipo=TipoServicio.CALIBRACION,
+    s = get_object_or_404(del_usuario(request.user, Servicio.objects.select_related("equipo")), pk=pk,
+                          tipo=TipoServicio.CALIBRACION,
                           resultado=Resultado.NO_CONFORME)
     if hasattr(s, "decision"):
         messages.info(request, "Esta decisión ya fue registrada.")
@@ -162,7 +166,7 @@ def decision(request, pk):
 def lista(request):
     g = request.GET
     f = {k: g.get(k, "").strip() for k in ("q", "tipo", "resultado", "proveedor", "desde", "hasta")}
-    qs = Servicio.objects.select_related("equipo", "proveedor")
+    qs = del_usuario(request.user, Servicio.objects.select_related("equipo", "proveedor"))
     if f["q"]:
         qs = qs.filter(Q(equipo__codigo__icontains=f["q"]) | Q(equipo__descripcion__icontains=f["q"]) |
                        Q(numero_certificado__icontains=f["q"]))
@@ -201,8 +205,8 @@ def _es_imagen(nombre):
 @login_required
 def certificado(request, pk):
     """El certificado archivado, listo para verlo en el teléfono al escanear su QR."""
-    s = get_object_or_404(Servicio.objects.select_related("equipo__unidad", "equipo__marca", "proveedor",
-                                                          "registrado_por"), pk=pk)
+    s = get_object_or_404(del_usuario(request.user, Servicio.objects.select_related(
+        "equipo__unidad", "equipo__marca", "proveedor", "registrado_por")), pk=pk)
     archivos = []
     if s.certificado:
         archivos.append({"titulo": "Certificado", "nombre": s.certificado.name, "imagen": _es_imagen(s.certificado.name)})
@@ -218,7 +222,7 @@ def certificado(request, pk):
 
 @rol_requerido(*EDITORES)
 def anexo(request, pk):
-    s = get_object_or_404(Servicio, pk=pk)
+    s = get_object_or_404(del_usuario(request.user, Servicio.objects.all()), pk=pk)
     form = AnexoForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         a = form.save(commit=False)
@@ -240,7 +244,7 @@ def certificados(request):
     """Archivo de certificados: buscar, ver y descargar todos juntos para una auditoría."""
     g = request.GET
     f = {k: g.get(k, "").strip() for k in ("q", "tipo", "proveedor", "anio", "vigentes")}
-    qs = Servicio.objects.select_related("equipo", "proveedor").prefetch_related("anexos")
+    qs = del_usuario(request.user, Servicio.objects.select_related("equipo", "proveedor").prefetch_related("anexos"))
     if f["q"]:
         qs = qs.filter(Q(equipo__codigo__icontains=f["q"]) | Q(equipo__descripcion__icontains=f["q"]) |
                        Q(numero_certificado__icontains=f["q"]) | Q(patrones__identificacion__icontains=f["q"]) |
@@ -260,7 +264,7 @@ def certificados(request):
     pagina = Paginator(qs, 25).get_page(g.get("page"))
     consulta = g.copy()
     consulta.pop("page", None)
-    anios = Servicio.objects.dates("fecha", "year", order="DESC")
+    anios = del_usuario(request.user, Servicio.objects.all()).dates("fecha", "year", order="DESC")
     return render(request, "servicios/certificados.html", {
         "pagina": pagina, "f": f, "consulta": consulta.urlencode(), "tipos": TipoServicio.choices,
         "proveedores": Proveedor.objects.all(), "anios": [d.year for d in anios],

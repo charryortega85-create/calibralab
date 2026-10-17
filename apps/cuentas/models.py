@@ -34,6 +34,9 @@ class Usuario(AbstractUser):
     nombre = models.CharField("nombre y apellido", max_length=150)
     email = models.EmailField("correo electrónico", unique=True)
     rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.TECNICO)
+    areas = models.ManyToManyField("catalogos.Area", blank=True, related_name="usuarios", verbose_name="áreas",
+                                   help_text="Solo ve y registra los equipos de estas áreas. "
+                                             "Si no se marca ninguna, ve todos los equipos.")
 
     REQUIRED_FIELDS = ["email"]
     objects = UsuarioManager()
@@ -60,6 +63,11 @@ class Usuario(AbstractUser):
     @property
     def es_administrador(self):
         return self.rol == Rol.ADMINISTRADOR
+
+    @property
+    def ve_todas_las_areas(self):
+        """El Administrador y quien no tiene áreas asignadas ven todos los equipos."""
+        return self.es_administrador or not self.areas.exists()
 
     @property
     def puede_editar(self):

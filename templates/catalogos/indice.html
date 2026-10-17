@@ -5,7 +5,7 @@
 <p>Los datos que se eligen de una lista en lugar de escribirse, para que no aparezcan escritos de varias formas.</p></div></div>
 <div class="mod-grid">
 {% for clave, titulo, n in resumen %}
-  <a class="mod" href="{% url 'catalogos:lista' clave %}"><b>{{ titulo|capfirst }}</b><small>{{ n }} activos</small></a>
+  <a class="mod" href="{% url 'catalogos:lista' clave %}"><b>{{ titulo|capfirst }}</b><small>En uso: {{ n }}</small></a>
 {% endfor %}
 </div>
 {% endblock %}

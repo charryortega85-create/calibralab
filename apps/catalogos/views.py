@@ -8,9 +8,11 @@ from django.urls import reverse
 
 from apps.cuentas.permisos import SOLO_ADMIN, rol_requerido
 
-from .models import Marca, Proveedor, Ubicacion, Unidad
+from .models import Area, Laboratorio, Marca, Proveedor, Ubicacion, Unidad
 
 LISTAS = {
+    "laboratorios": (Laboratorio, ["nombre", "activo"]),
+    "areas": (Area, ["laboratorio", "nombre", "activo"]),
     "marcas": (Marca, ["nombre", "activo"]),
     "ubicaciones": (Ubicacion, ["nombre", "activo"]),
     "unidades": (Unidad, ["simbolo", "nombre", "magnitud", "activo"]),
@@ -36,7 +38,8 @@ def lista(request, clave):
     q = request.GET.get("q", "").strip()
     qs = modelo.objects.all()
     if q:
-        qs = qs.filter(Q(nombre__icontains=q) | (Q(simbolo__icontains=q) if modelo is Unidad else Q()))
+        qs = qs.filter(Q(nombre__icontains=q) | (Q(simbolo__icontains=q) if modelo is Unidad else Q())
+                       | (Q(laboratorio__nombre__icontains=q) if modelo is Area else Q()))
     columnas = [modelo._meta.get_field(c).verbose_name for c in campos]
     filas = [(o, [getattr(o, c) for c in campos]) for o in qs]
     return render(request, "catalogos/lista.html", {
@@ -59,7 +62,7 @@ def editar(request, clave, pk=None):
         return redirect("catalogos:lista", clave=clave)
     return render(request, "core/form.html", {
         "form": form,
-        "titulo": f"Editar {modelo._meta.verbose_name}" if obj else f"{'Nuevo' if modelo is Proveedor else 'Nueva'} {modelo._meta.verbose_name}",
+        "titulo": f"Editar {modelo._meta.verbose_name}" if obj else f"{'Nuevo' if modelo in (Proveedor, Laboratorio) else 'Nueva'} {modelo._meta.verbose_name}",
         "migas": [("Listas controladas", reverse("catalogos:indice")),
                   (str(modelo._meta.verbose_name_plural).capitalize(), reverse("catalogos:lista", args=[clave]))],
         "volver": reverse("catalogos:lista", args=[clave]),

@@ -1,5 +1,10 @@
 <div class="field{% if campo.errors %} has-err{% endif %}">
-  {% if campo.field.widget.input_type == "checkbox" %}
+  {% if campo.field.widget.allow_multiple_selected and campo.field.widget.input_type == "checkbox" %}
+    <fieldset class="checks"><legend>{{ campo.label }}</legend>
+    {% for op in campo %}<label class="check" for="{{ op.id_for_label }}">{{ op.tag }} {{ op.choice_label }}</label>{% endfor %}
+    {% if not campo.field.choices %}<span class="cell-sub">Todavía no hay opciones en la lista.</span>{% endif %}
+    </fieldset>
+  {% elif campo.field.widget.input_type == "checkbox" %}
     <label class="check" for="{{ campo.id_for_label }}">{{ campo }} {{ campo.label }}</label>
   {% else %}
     <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>

@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from apps.alertas import avisos
 from apps.alertas.models import Aviso, ResultadoEnvio, TipoAviso
-from apps.catalogos.models import Marca, Proveedor, Ubicacion, Unidad
+from apps.catalogos.models import Area, Laboratorio, Marca, Proveedor, Ubicacion, Unidad
 from apps.cuentas.models import Usuario
 from apps.equipos.models import Criticidad, Equipo, EstadoEquipo, PuntoCalibracion, TipoEMP
 from apps.mantenimiento.models import Conclusion, EvaluacionEfecto, Novedad, PlanMantenimiento, TipoNovedad
@@ -24,6 +24,25 @@ from apps.servicios.models import (Decision, DecisionNoApto, PatronUtilizado, Pu
                                    TipoServicio)
 
 RESPONSABLES = {"mp": "mperez", "lg": "lgimenez", "cb": "cbenitez", "ad": "aduarte"}
+
+# Laboratorios y áreas inventados: cada ubicación de la maqueta cae en un área.
+AREAS = {
+    "Sala de balanzas": ("Laboratorio Fisicoquímico", "Metrología"),
+    "Sala de metrología": ("Laboratorio Fisicoquímico", "Metrología"),
+    "Sala de instrumentos": ("Laboratorio Fisicoquímico", "Metrología"),
+    "Lab. de química": ("Laboratorio Fisicoquímico", "Química"),
+    "Lab. de microbiología": ("Laboratorio Microbiológico", "Microbiología"),
+    "Área de esterilización": ("Laboratorio Microbiológico", "Esterilización"),
+}
+# Dos técnicos trabajan solo en sus áreas; los demás usuarios ven todo.
+AREAS_DE_USUARIOS = {"lgimenez": [("Laboratorio Fisicoquímico", "Química")],
+                     "cbenitez": [("Laboratorio Microbiológico", "Microbiología"),
+                                  ("Laboratorio Microbiológico", "Esterilización")]}
+
+
+def area(laboratorio, nombre):
+    lab = Laboratorio.objects.get_or_create(nombre=laboratorio)[0]
+    return Area.objects.get_or_create(laboratorio=lab, nombre=nombre)[0]
 
 # [código, equipo, marca, modelo, ubicación, criticidad, responsable, estado, intervalo, fecha, resultado,
 #  tipo, proveedor, certificado, última conforme (si el último fue no conforme)]  — igual que la maqueta
@@ -148,6 +167,8 @@ class Command(BaseCommand):
             Proveedor.objects.get_or_create(nombre=nombre, defaults={
                 "ruc": ruc, "acreditacion": acred, "correo": f"{nombre[-1].lower()}@proveedor.example"})
         equipos = {fila[0]: self.equipo(fila) for fila in DATOS}
+        for usuario, areas in AREAS_DE_USUARIOS.items():
+            Usuario.objects.get(username=usuario).areas.set([area(*a) for a in areas])
         self.extras(equipos)
         self.plan(equipos)
         self.avisos()
@@ -163,7 +184,7 @@ class Command(BaseCommand):
         e = Equipo.objects.create(
             codigo=codigo, patrimonio=f"PAT-{codigo[-4:]}", descripcion=desc,
             marca=Marca.objects.get_or_create(nombre=marca)[0], modelo=modelo, numero_serie=f"SN{codigo[-4:]}-{modelo}",
-            ubicacion=Ubicacion.objects.get_or_create(nombre=ubic)[0], responsable=self.usuarios[resp], unidad=unidad,
+            area=area(*AREAS[ubic]), ubicacion=Ubicacion.objects.get_or_create(nombre=ubic)[0], responsable=self.usuarios[resp], unidad=unidad,
             rango_min=rmin, rango_max=rmax, resolucion=D(res) if res else None, capacidad=cap,
             criticidad=Criticidad(crit.lower()), intervalo_meses=intervalo,
         )

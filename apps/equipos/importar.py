@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from openpyxl import load_workbook
 
-from apps.catalogos.models import Marca, Ubicacion, Unidad
+from apps.catalogos.models import Area, Marca, Ubicacion, Unidad
 from apps.cuentas.models import Usuario
 
 from .forms import EquipoForm
@@ -24,6 +24,8 @@ COLUMNAS = [
     ("marca", "marca", "Nombre de la marca, tal como figura en la lista de marcas"),
     ("modelo", "modelo", "Modelo"),
     ("numero_serie", "numero_serie", "N.º de serie"),
+    ("laboratorio", "laboratorio", "Nombre del laboratorio, tal como figura en la lista"),
+    ("area", "area", "Nombre del área dentro de ese laboratorio"),
     ("ubicacion", "ubicacion", "Nombre de la ubicación, tal como figura en la lista"),
     ("responsable", "responsable", "Usuario del responsable, por ejemplo mperez"),
     ("unidad", "unidad", "Símbolo de la unidad de medida, por ejemplo g o °C"),
@@ -80,7 +82,27 @@ def _buscar(modelo, campo, valor, etiqueta, errores):
     return obj.pk
 
 
-def validar(registros):
+def _buscar_area(laboratorio, area, usuario, errores):
+    """El área por su nombre (y el del laboratorio). Si se deja vacía y el usuario tiene una sola área, va a esa."""
+    if not area:
+        if usuario is not None and not usuario.ve_todas_las_areas and usuario.areas.count() == 1:
+            return usuario.areas.get().pk
+        return ""
+    qs = Area.objects.filter(nombre__iexact=area)
+    if laboratorio:
+        qs = qs.filter(laboratorio__nombre__iexact=laboratorio)
+    encontradas = list(qs[:2])
+    if not encontradas:
+        donde = f" del laboratorio «{laboratorio}»" if laboratorio else ""
+        errores.append(f"El área «{area}»{donde} no existe en la lista. Pide al administrador que la agregue.")
+        return ""
+    if len(encontradas) > 1:
+        errores.append(f"Hay varias áreas «{area}»: escribe también el laboratorio.")
+        return ""
+    return encontradas[0].pk
+
+
+def validar(registros, usuario=None):
     faltan = [c for c in ("codigo", "descripcion", "marca", "modelo", "numero_serie") if registros and c not in registros[0]]
     if faltan:
         return [Fila(1, {}, [f"Faltan columnas en el archivo: {', '.join(faltan)}. Usa la plantilla."])]
@@ -91,6 +113,7 @@ def validar(registros):
         e = fila.errores
         d = dict(fila.datos)
         d["marca"] = _buscar(Marca, "nombre", d["marca"], "La marca", e)
+        d["area"] = _buscar_area(d.pop("laboratorio"), d["area"], usuario, e)
         d["ubicacion"] = _buscar(Ubicacion, "nombre", d["ubicacion"], "La ubicación", e)
         d["unidad"] = _buscar(Unidad, "simbolo", d["unidad"], "La unidad", e)
         d["responsable"] = _buscar(Usuario, "username", d["responsable"], "El usuario responsable", e)
@@ -98,7 +121,7 @@ def validar(registros):
         for num in ("rango_min", "rango_max", "resolucion", "capacidad"):
             d[num] = d[num].replace(",", ".")
         d["intervalo_meses"] = d["intervalo_meses"] or "12"
-        form = EquipoForm(data=d)
+        form = EquipoForm(data=d, usuario=usuario)
         if not form.is_valid():
             for campo, errs in form.errors.items():
                 etiqueta = form.fields[campo].label if campo in form.fields else ""
@@ -116,10 +139,10 @@ def validar(registros):
     return filas
 
 
-def guardar(filas):
+def guardar(filas, usuario=None):
     creados = []
     for f in filas:
-        form = EquipoForm(data=f.datos)
+        form = EquipoForm(data=f.datos, usuario=usuario)
         if not form.is_valid():  # Algo cambió desde la revisión: se cancela todo.
             raise ValueError(f"La fila {f.numero} dejó de ser válida: {form.errors.as_text()}")
         equipo = form.save(commit=False)

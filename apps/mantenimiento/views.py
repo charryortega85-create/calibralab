@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.cuentas.permisos import EDITORES, rol_requerido
+from apps.equipos.acceso import del_usuario, equipos_visibles
 from apps.equipos.models import Equipo, EstadoEquipo
 from apps.servicios.calculos import sumar_meses
 from apps.servicios.models import Resultado, Servicio, TipoServicio
@@ -14,12 +15,14 @@ from .forms import EvaluacionForm, NovedadForm, PlanMantenimientoForm
 from .models import Novedad, PlanMantenimiento, TipoNovedad
 
 
-def tareas_con_vencimiento(hoy=None):
+def tareas_con_vencimiento(hoy=None, usuario=None):
     """RF-34: cada tarea activa con la fecha de su próxima ejecución (desde la última novedad que la cumplió)."""
     hoy = hoy or timezone.localdate()
     tareas = []
     planes = (PlanMantenimiento.objects.filter(activo=True).exclude(equipo__estado=EstadoEquipo.BAJA)
               .select_related("equipo", "responsable").prefetch_related("ejecuciones"))
+    if usuario is not None:
+        planes = del_usuario(usuario, planes)
     for t in planes:
         ultima = max((n.fecha for n in t.ejecuciones.all()), default=None)
         t.ultima = ultima
@@ -30,24 +33,26 @@ def tareas_con_vencimiento(hoy=None):
     return tareas
 
 
-def evaluaciones_pendientes():
+def evaluaciones_pendientes(usuario=None):
     """RF-35: calibraciones no aptas que todavía no tienen la evaluación del efecto."""
-    return (Servicio.objects.filter(tipo=TipoServicio.CALIBRACION, resultado=Resultado.NO_CONFORME,
+    qs = (Servicio.objects.filter(tipo=TipoServicio.CALIBRACION, resultado=Resultado.NO_CONFORME,
                                     evaluacion__isnull=True).select_related("equipo"))
+    return qs if usuario is None else del_usuario(usuario, qs)
 
 
 @login_required
 def indice(request):
     g = request.GET
     tipo = g.get("tipo", "")
-    novedades = Novedad.objects.select_related("equipo", "responsable")
+    novedades = del_usuario(request.user, Novedad.objects.select_related("equipo", "responsable"))
     if tipo in TipoNovedad.values:
         novedades = novedades.filter(tipo=tipo)
     q = g.get("q", "").strip()
     if q:
         novedades = novedades.filter(equipo__codigo__icontains=q) | novedades.filter(descripcion__icontains=q)
     return render(request, "mantenimiento/indice.html", {
-        "tareas": tareas_con_vencimiento(), "pendientes": evaluaciones_pendientes(),
+        "tareas": tareas_con_vencimiento(usuario=request.user),
+        "pendientes": evaluaciones_pendientes(request.user),
         "pagina": Paginator(novedades, 25).get_page(g.get("page")), "tipos": TipoNovedad.choices,
         "tipo": tipo, "q": q,
     })
@@ -62,8 +67,8 @@ def _form(request, form, titulo, equipo, subtitulo=""):
 
 @rol_requerido(*EDITORES)
 def novedad_editar(request, equipo_pk=None, pk=None):
-    obj = get_object_or_404(Novedad.objects.select_related("equipo"), pk=pk) if pk else None
-    equipo = obj.equipo if obj else get_object_or_404(Equipo, pk=equipo_pk)
+    obj = get_object_or_404(del_usuario(request.user, Novedad.objects.select_related("equipo")), pk=pk) if pk else None
+    equipo = obj.equipo if obj else get_object_or_404(equipos_visibles(request.user), pk=equipo_pk)
     inicial = {"fecha": timezone.localdate(), "responsable": request.user, "plan": request.GET.get("plan")}
     form = NovedadForm(request.POST or None, instance=obj, equipo=equipo, initial=inicial)
     if request.method == "POST" and form.is_valid():
@@ -78,8 +83,9 @@ def novedad_editar(request, equipo_pk=None, pk=None):
 
 @rol_requerido(*EDITORES)
 def plan_editar(request, equipo_pk=None, pk=None):
-    obj = get_object_or_404(PlanMantenimiento.objects.select_related("equipo"), pk=pk) if pk else None
-    equipo = obj.equipo if obj else get_object_or_404(Equipo, pk=equipo_pk)
+    obj = (get_object_or_404(del_usuario(request.user, PlanMantenimiento.objects.select_related("equipo")), pk=pk)
+           if pk else None)
+    equipo = obj.equipo if obj else get_object_or_404(equipos_visibles(request.user), pk=equipo_pk)
     form = PlanMantenimientoForm(request.POST or None, instance=obj, initial={"responsable": equipo.responsable_id})
     if request.method == "POST" and form.is_valid():
         t = form.save(commit=False)
@@ -94,7 +100,7 @@ def plan_editar(request, equipo_pk=None, pk=None):
 @login_required
 def evaluacion(request, servicio_pk):
     """RF-35: evaluación del efecto sobre los resultados emitidos mientras el equipo pudo estar fuera de tolerancia."""
-    s = get_object_or_404(Servicio.objects.select_related("equipo"), pk=servicio_pk,
+    s = get_object_or_404(del_usuario(request.user, Servicio.objects.select_related("equipo")), pk=servicio_pk,
                           tipo=TipoServicio.CALIBRACION, resultado=Resultado.NO_CONFORME)
     obj = getattr(s, "evaluacion", None)
     editar = request.user.puede_editar and (obj is None or request.GET.get("corregir") or request.method == "POST")

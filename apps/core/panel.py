@@ -8,6 +8,7 @@ from django.utils import timezone
 from apps.alertas.estado import activos, conteo, prioridades
 from apps.alertas.models import Aviso, ResultadoEnvio
 from apps.cuentas.models import Configuracion, Rol, Usuario
+from apps.equipos.acceso import del_usuario, equipos_visibles
 from apps.equipos.models import Equipo, EstadoEquipo
 from apps.servicios.calculos import Estado, sumar_meses
 from apps.servicios.models import Resultado, Servicio
@@ -35,29 +36,30 @@ def datos(usuario, filtro_servicios="todos"):
     hoy = timezone.localdate()
     ahora = timezone.localtime()
     conf = Configuracion.actual()
-    cnt = conteo(dia=hoy)
+    equipos = equipos_visibles(usuario)  # solo los de sus áreas, si las tiene
+    cnt = conteo(equipos, dia=hoy)
     total = sum(cnt.values())
-    por_estado = dict(Equipo.objects.values_list("estado").annotate(n=Count("id")))
+    por_estado = dict(equipos.values_list("estado").annotate(n=Count("id")))
 
-    proximas = [p for p in prioridades(dia=hoy) if p.equipo.estado_cal == Estado.POR_VENCER]
+    proximas = [p for p in prioridades(equipos, dia=hoy) if p.equipo.estado_cal == Estado.POR_VENCER]
     proxima = min(proximas, key=lambda p: p.dias) if proximas else None
 
     hace30 = ahora - timedelta(days=30)
-    recientes = Aviso.objects.filter(enviado_en__gte=hace30)
+    recientes = del_usuario(usuario, Aviso.objects.filter(enviado_en__gte=hace30))
     errores = recientes.filter(resultado=ResultadoEnvio.ERROR).count()
 
     # Alertas por técnico (un técnico ve solo su fila; Administrador y Consulta ven todas)
-    responsables = Usuario.objects.filter(is_active=True, equipos__isnull=False).distinct()
+    responsables = Usuario.objects.filter(is_active=True, equipos__in=equipos).distinct()
     if usuario.rol == Rol.TECNICO:
         responsables = responsables.filter(pk=usuario.pk)
     tecnicos = []
     for t in responsables:
-        c = conteo(Equipo.objects.filter(responsable=t), dia=hoy)
+        c = conteo(equipos.filter(responsable=t), dia=hoy)
         tecnicos.append({"u": t, "vencidos": c[Estado.VENCIDO], "por_vencer": c[Estado.POR_VENCER],
-                         "ultimo": Aviso.objects.filter(destinatario=t).select_related("equipo").first(),
-                         "avisos": Aviso.objects.filter(destinatario=t).select_related("equipo")[:4]})
+                         "ultimo": del_usuario(usuario, Aviso.objects.filter(destinatario=t)).select_related("equipo").first(),
+                         "avisos": del_usuario(usuario, Aviso.objects.filter(destinatario=t)).select_related("equipo")[:4]})
 
-    servicios = Servicio.objects.select_related("equipo", "proveedor")
+    servicios = del_usuario(usuario, Servicio.objects.select_related("equipo", "proveedor"))
     if filtro_servicios == "conformes":
         servicios = servicios.filter(resultado=Resultado.CONFORME)
     elif filtro_servicios == "no_conformes":
@@ -69,7 +71,7 @@ def datos(usuario, filtro_servicios="todos"):
         s.dias_desde = (s.fecha - hoy).days
 
     # Vencimientos de los próximos 6 meses
-    con_fecha = activos(dia=hoy).filter(proxima__isnull=False, proxima__gte=hoy).values_list("proxima", flat=True)
+    con_fecha = activos(equipos, dia=hoy).filter(proxima__isnull=False, proxima__gte=hoy).values_list("proxima", flat=True)
     columnas = [{"etiqueta": "Vencidos", "n": cnt[Estado.VENCIDO], "mal": True}]
     inicio_mes = date(hoy.year, hoy.month, 1)
     fechas = list(con_fecha)
@@ -101,7 +103,7 @@ def datos(usuario, filtro_servicios="todos"):
                      "pct": round(cnt[k] * 100 / total, 1) if total else 0} for k in Estado.ORDEN],
         "validos": cnt[Estado.VIGENTE] + cnt[Estado.POR_VENCER],
         "pct_validos": round((cnt[Estado.VIGENTE] + cnt[Estado.POR_VENCER]) * 100 / total, 1) if total else 0,
-        "ultimos": ultimos, "filtro": filtro_servicios, "prioridad": prioridades(dia=hoy, limite=7),
+        "ultimos": ultimos, "filtro": filtro_servicios, "prioridad": prioridades(equipos, dia=hoy, limite=7),
         "n_prioridad": cnt[Estado.VENCIDO] + cnt[Estado.POR_VENCER],
         "barras": columnas, "dentro_6": dentro, "mas_adelante": len(fechas) - dentro, "siguiente_envio": siguiente,
     }

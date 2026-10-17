@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from apps.alertas.estado import activos
 from apps.cuentas.permisos import EDITORES, rol_requerido
+from apps.equipos.acceso import equipos_visibles
 from apps.equipos.models import ORDEN_CRITICIDAD
 from apps.servicios.calculos import Estado
 
@@ -28,7 +29,7 @@ def indice(request):
 @login_required
 def lote(request, pk):
     obj = get_object_or_404(Lote, pk=pk)
-    equipos = activos(obj.equipos.all()).select_related("responsable")
+    equipos = activos(equipos_visibles(request.user, obj.equipos.all())).select_related("responsable")
     return render(request, "plan/lote.html", {"l": obj, "equipos": equipos,
                                               "items": obj.items_plan.select_related("plan", "proveedor")})
 
@@ -106,7 +107,7 @@ def prioridad(request):
         anio = int(request.GET.get("anio", hoy.year))
     except ValueError:
         anio = hoy.year
-    equipos = [e for e in activos().select_related("responsable", "ubicacion").prefetch_related("lotes")
+    equipos = [e for e in activos(equipos_visibles(request.user)).select_related("responsable", "ubicacion").prefetch_related("lotes")
                if e.estado_cal in (Estado.VENCIDO, Estado.SIN_REGISTRO) or (e.proxima and e.proxima.year <= anio)]
     equipos.sort(key=lambda e: (
         {Estado.VENCIDO: 0, Estado.SIN_REGISTRO: 1}.get(e.estado_cal, 2),
