@@ -1,0 +1,53 @@
+{% extends "publico/base.html" %}{% load calibra %}
+{% block titulo %}{{ e.codigo }}{% endblock %}
+{% block enlace_interno %}{{ e.get_absolute_url }}{% endblock %}
+{% block contenido %}
+<div class="pub-head">
+  <small>Equipo</small>
+  <h1>{{ e.codigo }} · {{ e.descripcion }}</h1>
+  <p>{{ e.marca }} {{ e.modelo }} · S/N {{ e.numero_serie }}</p>
+</div>
+
+<div class="status-row">
+  <div class="status-box"><small>Estado de calibración</small>{{ e.estado_cal|estado_cal }}
+    <span class="sub">{% if e.proxima %}Próxima calibración: <b>{{ e.proxima|date:"Y-m-d" }}</b> ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin calibración conforme{% endif %}</span></div>
+  <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}</div>
+</div>
+
+{% if ultimos %}
+<div class="card"><div class="card-h"><div><h2>Últimos certificados</h2><p>El más reciente de cada tipo de servicio.</p></div></div>
+  <div class="card-b stack">
+  {% for s, t in ultimos %}
+    <a class="pub-cert" href="{% url 'core:qr_certificado' t %}">
+      <span><small>{{ s.get_tipo_display }} · {{ s.fecha|date:"Y-m-d" }}</small>
+      <b class="mono">{{ s.numero_certificado }}</b><span class="cell-sub">{{ s.proveedor }}</span></span>
+      <span class="pub-cert-r">{{ s|dictamen }}
+        <span class="cell-sub">{% if s.es_calibracion %}{% if s.proxima_fecha %}Próxima: {{ s.proxima_fecha|date:"Y-m-d" }}{% endif %}{% elif s.vigencia_hasta %}Vigente hasta {{ s.vigencia_hasta|date:"Y-m-d" }}{% if s.vigencia_hasta < hoy %} (vencida){% endif %}{% endif %}</span>
+        <span class="link">Ver certificado</span></span>
+    </a>
+  {% endfor %}
+  </div></div>
+{% endif %}
+
+<div class="card"><div class="card-h"><div><h2>Datos del equipo</h2></div></div><div class="card-b"><dl class="dl">
+  <div><dt>Código interno</dt><dd class="mono">{{ e.codigo }}</dd></div>
+  {% if e.patrimonio %}<div><dt>N.º de patrimonio</dt><dd>{{ e.patrimonio }}</dd></div>{% endif %}
+  <div><dt>Marca y modelo</dt><dd>{{ e.marca }} {{ e.modelo }}</dd></div>
+  <div><dt>N.º de serie</dt><dd>{{ e.numero_serie }}</dd></div>
+  <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
+  <div><dt>Rango</dt><dd>{% if e.rango_min is not None or e.rango_max is not None %}{{ e.rango_min|num }} a {{ e.rango_max|num }} {{ e.unidad }}{% else %}—{% endif %}</dd></div>
+  <div><dt>Resolución</dt><dd>{% if e.resolucion is not None %}{{ e.resolucion|num }} {{ e.unidad }}{% else %}—{% endif %}</dd></div>
+  <div><dt>Intervalo de calibración</dt><dd>{{ e.intervalo_meses }} meses</dd></div>
+</dl></div></div>
+
+{% if historial %}
+<div class="card"><div class="card-h"><div><h2>Historial de servicios</h2><p>Los {{ historial|length }} más recientes.</p></div></div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Fecha</th><th>Certificado</th><th>Resultado</th></tr></thead>
+    <tbody>{% for s, t in historial %}<tr>
+      <td class="nw">{{ s.fecha|date:"Y-m-d" }}</td>
+      <td><a class="link mono" href="{% url 'core:qr_certificado' t %}">{{ s.numero_certificado }}</a><span class="cell-sub">{{ s.get_tipo_display }} · {{ s.proveedor }}</span></td>
+      <td>{{ s|dictamen }}</td></tr>{% endfor %}</tbody>
+  </table></div></div>
+{% endif %}
+{% endblock %}

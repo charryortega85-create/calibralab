@@ -46,7 +46,7 @@ def test_pagina_del_certificado_con_qr_y_archivo(cliente_de, consulta, crear_equ
     assert "Agregar página" not in html  # Consulta solo mira
 
 
-def test_sin_sesion_el_qr_pide_ingresar(client, crear_equipo, calibrar):
+def test_sin_sesion_la_pagina_interna_pide_ingresar(client, crear_equipo, calibrar):
     s = calibrar(crear_equipo(), date(2026, 3, 9))
     url = reverse("servicios:certificado", args=[s.pk])
     r = client.get(url)

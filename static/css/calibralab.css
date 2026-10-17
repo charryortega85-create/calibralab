@@ -434,3 +434,23 @@ details.versiones summary{cursor:pointer;font-weight:600}
 .cert-img{display:block;width:100%;height:auto}
 .cert-pdf{display:block;width:100%;height:70vh;border:0}
 @media print{.cert-grid{display:block}.cert-qr{border:0;box-shadow:none}}
+
+/* ---------- Consulta pública por QR ---------- */
+.pub-top{background:var(--nav-bg);padding:14px 16px}
+.pub-top .brand{padding:0}
+.pub-main{grid-template-columns:minmax(0,1fr);max-width:880px;margin:0 auto;padding:20px 16px 32px}
+.pub-head small{display:block;font-size:12px;color:var(--text-3);text-transform:uppercase;font-weight:600;letter-spacing:.03em}
+.pub-head h1{font-size:22px;line-height:1.25;margin:2px 0 4px;overflow-wrap:anywhere}
+.pub-head p{color:var(--text-2)}
+.pub-cert{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.pub-cert:hover{border-color:var(--brand-2)}
+.pub-cert small{display:block;font-size:12px;color:var(--text-3)}
+.pub-cert b{display:block}
+.pub-cert-r{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.pub-pie{font-size:12.5px;color:var(--text-3);text-align:center}
+.pub .tbl{min-width:0}
+.pub .tbl th,.pub .tbl td{padding-left:10px;padding-right:10px}
+.pub .tbl th:first-child,.pub .tbl td:first-child{padding-left:16px}
+.pub .tbl th:last-child,.pub .tbl td:last-child{padding-right:16px}
+/* En el teléfono el PDF no se ve dentro de la página: se abre con el botón. */
+@media (max-width:760px){.pub .cert-pdf{display:none}.pub .cert-archivo{border:0}.pub .cert-archivo-h{padding:0;background:none;align-items:center}}

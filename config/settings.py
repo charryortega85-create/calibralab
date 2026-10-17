@@ -171,3 +171,5 @@ EXTENSIONES_PERMITIDAS = ["pdf", "jpg", "jpeg", "png", "webp", "doc", "docx", "x
 
 # Dirección pública del sistema, para los enlaces de los correos y de la etiqueta QR (RF-14).
 URL_SISTEMA = env("URL_SISTEMA", "http://localhost:8000")
+# Firma de los códigos QR. Si se cambia, los QR ya impresos dejan de abrir la consulta.
+QR_CLAVE = env("QR_CLAVE", SECRET_KEY)

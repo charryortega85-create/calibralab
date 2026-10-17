@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from apps.catalogos.models import Proveedor
 from apps.core.exportar import exportar
-from apps.core.qr import qr_svg, url_absoluta
+from apps.core.qr import qr_svg, url_publica_certificado
 from apps.cuentas.permisos import EDITORES, rol_requerido
 from apps.equipos.models import Equipo, EstadoEquipo
 
@@ -208,7 +208,7 @@ def certificado(request, pk):
         archivos.append({"titulo": "Certificado", "nombre": s.certificado.name, "imagen": _es_imagen(s.certificado.name)})
     for a in s.anexos.all():
         archivos.append({"titulo": a.titulo, "nombre": a.archivo.name, "imagen": _es_imagen(a.archivo.name)})
-    url = url_absoluta(reverse("servicios:certificado", args=[s.pk]))
+    url = url_publica_certificado(s)
     form = AnexoForm() if request.user.puede_editar else None
     return render(request, "servicios/certificado.html", {
         "s": s, "archivos": archivos, "patrones": s.patrones.all(), "qr": qr_svg(url), "url": url, "form": form,
