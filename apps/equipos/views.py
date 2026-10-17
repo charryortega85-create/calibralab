@@ -77,7 +77,7 @@ def lista(request):
 
 def areas_del_usuario(usuario):
     areas = Area.objects.select_related("laboratorio")
-    return areas if usuario.ve_todas_las_areas else areas.filter(pk__in=usuario.areas.all())
+    return areas if usuario.ve_todas_las_areas else areas.filter(pk__in=usuario.areas_permitidas())
 
 
 def exportar_inventario(qs, formato):

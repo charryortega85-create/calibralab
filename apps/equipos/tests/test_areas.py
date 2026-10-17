@@ -106,3 +106,24 @@ def test_consulta_ve_todas_las_areas_aunque_tenga_areas_marcadas(cliente_de, esc
     consulta.areas.set([areas["quimica"]])
     html = cliente_de(consulta).get(reverse("equipos:lista")).content.decode()
     assert "EQ-0001" in html and "EQ-0002" in html
+
+
+def test_encargado_ve_todas_las_areas_de_su_laboratorio(cliente_de, escenario, areas, crear_equipo, admin):
+    crear_equipo("EQ-0003", area=areas["metrologia"], responsable=admin)
+    encargado = _crear("encargado", Rol.TECNICO)
+    encargado.laboratorios.set([areas["quimica"].laboratorio])
+    html = cliente_de(encargado).get(reverse("equipos:lista")).content.decode()
+    assert "EQ-0001" in html and "EQ-0003" in html and "EQ-0002" not in html
+    # Un área nueva del mismo laboratorio entra sola
+    nueva = Area.objects.create(laboratorio=areas["quimica"].laboratorio, nombre="Física")
+    crear_equipo("EQ-0004", area=nueva, responsable=admin)
+    assert "EQ-0004" in cliente_de(encargado).get(reverse("equipos:lista")).content.decode()
+
+
+def test_administrador_asigna_un_laboratorio_a_cargo(cliente_de, admin, tecnico, areas):
+    lab = areas["micro"].laboratorio
+    datos = {"nombre": tecnico.nombre, "email": tecnico.email, "rol": tecnico.rol, "is_active": "on",
+             "laboratorios": [lab.pk]}
+    assert cliente_de(admin).post(reverse("cuentas:usuario_editar", args=[tecnico.pk]), datos).status_code == 302
+    assert list(tecnico.laboratorios.all()) == [lab]
+    assert "Encargado: Laboratorio Microbiológico" in cliente_de(admin).get(reverse("cuentas:usuarios")).content.decode()

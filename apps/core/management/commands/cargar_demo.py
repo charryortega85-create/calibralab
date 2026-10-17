@@ -34,7 +34,7 @@ AREAS = {
     "Lab. de microbiología": ("Laboratorio Microbiológico", "Microbiología"),
     "Área de esterilización": ("Laboratorio Microbiológico", "Esterilización"),
 }
-# Dos técnicos trabajan solo en sus áreas; los demás usuarios ven todo.
+# Dos técnicos trabajan solo en sus áreas, uno es encargado de un laboratorio entero y los demás ven todo.
 AREAS_DE_USUARIOS = {"lgimenez": [("Laboratorio Fisicoquímico", "Química")],
                      "cbenitez": [("Laboratorio Microbiológico", "Microbiología"),
                                   ("Laboratorio Microbiológico", "Esterilización")]}
@@ -169,6 +169,8 @@ class Command(BaseCommand):
         equipos = {fila[0]: self.equipo(fila) for fila in DATOS}
         for usuario, areas in AREAS_DE_USUARIOS.items():
             Usuario.objects.get(username=usuario).areas.set([area(*a) for a in areas])
+        Usuario.objects.get(username="aduarte").laboratorios.set(
+            [Laboratorio.objects.get(nombre="Laboratorio Fisicoquímico")])
         self.extras(equipos)
         self.plan(equipos)
         self.avisos()

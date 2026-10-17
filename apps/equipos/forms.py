@@ -36,7 +36,7 @@ class EquipoForm(MotivoMixin, forms.ModelForm):
         # Cada usuario elige entre sus áreas; si hay áreas cargadas, el área es obligatoria.
         areas = Area.objects.select_related("laboratorio")
         if usuario is not None and not usuario.ve_todas_las_areas:
-            areas = areas.filter(pk__in=usuario.areas.all())
+            areas = areas.filter(pk__in=usuario.areas_permitidas())
         self.fields["area"].queryset = activos_o_actual(areas, i.area_id)
         self.fields["area"].required = Area.objects.exists()
         self.fields["marca"].queryset = activos_o_actual(Marca.objects.all(), i.marca_id)

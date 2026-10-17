@@ -34,9 +34,12 @@ class Usuario(AbstractUser):
     nombre = models.CharField("nombre y apellido", max_length=150)
     email = models.EmailField("correo electrónico", unique=True)
     rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.TECNICO)
+    laboratorios = models.ManyToManyField(
+        "catalogos.Laboratorio", blank=True, related_name="encargados", verbose_name="encargado de laboratorio",
+        help_text="Ve todas las áreas de estos laboratorios, también las que se agreguen después.")
     areas = models.ManyToManyField("catalogos.Area", blank=True, related_name="usuarios", verbose_name="áreas",
                                    help_text="Solo ve y registra los equipos de estas áreas. "
-                                             "Si no se marca ninguna, ve todos los equipos. "
+                                             "Si no se marca ningún laboratorio ni área, ve todos los equipos. "
                                              "El Administrador y los usuarios de Consulta siempre ven todos.")
 
     REQUIRED_FIELDS = ["email"]
@@ -67,8 +70,17 @@ class Usuario(AbstractUser):
 
     @property
     def ve_todas_las_areas(self):
-        """El Administrador, los usuarios de Consulta y quien no tiene áreas asignadas ven todos los equipos."""
-        return self.es_administrador or self.rol == Rol.CONSULTA or not self.areas.exists()
+        """El Administrador, los usuarios de Consulta y quien no tiene laboratorios ni áreas ven todos los equipos."""
+        return (self.es_administrador or self.rol == Rol.CONSULTA
+                or not (self.areas.exists() or self.laboratorios.exists()))
+
+    def areas_permitidas(self):
+        """Sus áreas sueltas más todas las de los laboratorios a su cargo."""
+        from django.db.models import Q
+
+        from apps.catalogos.models import Area
+
+        return Area.objects.filter(Q(pk__in=self.areas.all()) | Q(laboratorio__in=self.laboratorios.all()))
 
     @property
     def puede_editar(self):

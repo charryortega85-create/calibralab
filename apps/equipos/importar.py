@@ -85,8 +85,8 @@ def _buscar(modelo, campo, valor, etiqueta, errores):
 def _buscar_area(laboratorio, area, usuario, errores):
     """El área por su nombre (y el del laboratorio). Si se deja vacía y el usuario tiene una sola área, va a esa."""
     if not area:
-        if usuario is not None and not usuario.ve_todas_las_areas and usuario.areas.count() == 1:
-            return usuario.areas.get().pk
+        if usuario is not None and not usuario.ve_todas_las_areas and usuario.areas_permitidas().count() == 1:
+            return usuario.areas_permitidas().get().pk
         return ""
     qs = Area.objects.filter(nombre__iexact=area)
     if laboratorio:

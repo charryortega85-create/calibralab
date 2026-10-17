@@ -16,17 +16,18 @@ class IngresoForm(AuthenticationForm):
 
 
 class AreasMixin:
-    """Las áreas en las que trabaja la persona. Si no se marca ninguna, ve todos los equipos."""
+    """Los laboratorios a cargo y las áreas de la persona. Si no se marca nada, ve todos los equipos."""
 
     def _preparar_areas(self):
-        from apps.catalogos.models import Area
+        from apps.catalogos.models import Area, Laboratorio
 
-        if not Area.objects.exists():
-            self.fields.pop("areas")
-            return
-        actuales = self.instance.areas.all() if self.instance.pk else Area.objects.none()
-        self.fields["areas"].queryset = Area.objects.select_related("laboratorio").filter(
-            Q(activo=True) | Q(pk__in=actuales))
+        for campo, modelo, qs in (("laboratorios", Laboratorio, Laboratorio.objects.all()),
+                                  ("areas", Area, Area.objects.select_related("laboratorio"))):
+            if not modelo.objects.exists():
+                self.fields.pop(campo)
+                continue
+            actuales = getattr(self.instance, campo).all() if self.instance.pk else modelo.objects.none()
+            self.fields[campo].queryset = qs.filter(Q(activo=True) | Q(pk__in=actuales))
 
 
 class UsuarioCrearForm(AreasMixin, forms.ModelForm):
@@ -42,9 +43,9 @@ class UsuarioCrearForm(AreasMixin, forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ["nombre", "username", "email", "rol", "areas"]
+        fields = ["nombre", "username", "email", "rol", "laboratorios", "areas"]
         labels = {"username": "Usuario"}
-        widgets = {"areas": forms.CheckboxSelectMultiple}
+        widgets = {"laboratorios": forms.CheckboxSelectMultiple, "areas": forms.CheckboxSelectMultiple}
         help_texts = {"username": "Con este nombre ingresa al sistema. Sin espacios."}
 
     def __init__(self, *args, **kwargs):
@@ -77,8 +78,8 @@ class UsuarioCrearForm(AreasMixin, forms.ModelForm):
 class UsuarioEditarForm(AreasMixin, forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = ["nombre", "email", "rol", "areas", "is_active"]
-        widgets = {"areas": forms.CheckboxSelectMultiple}
+        fields = ["nombre", "email", "rol", "laboratorios", "areas", "is_active"]
+        widgets = {"laboratorios": forms.CheckboxSelectMultiple, "areas": forms.CheckboxSelectMultiple}
         labels = {"is_active": "Activo"}
         help_texts = {"is_active": "Un usuario desactivado no puede ingresar, pero su nombre se conserva en los historiales."}
 
