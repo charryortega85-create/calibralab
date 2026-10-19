@@ -45,6 +45,7 @@ class Fila:
     numero: int
     datos: dict
     errores: list = field(default_factory=list)
+    avisos: list = field(default_factory=list)   # lo que se agregará a las listas al guardar
 
     @property
     def codigo(self):
@@ -72,10 +73,19 @@ def leer(archivo):
     return salida
 
 
-def _buscar(modelo, campo, valor, etiqueta, errores):
+# Listas que se pueden completar desde el archivo: campo → (modelo, campo de búsqueda, nombre en el aviso)
+AGREGABLES = {"marca": (Marca, "nombre", "la marca"), "ubicacion": (Ubicacion, "nombre", "la ubicación"),
+              "unidad": (Unidad, "simbolo", "la unidad")}
+
+
+def _buscar(modelo, campo, valor, etiqueta, errores, fila=None, crear=False):
     if not valor:
         return ""
     obj = modelo.objects.filter(**{f"{campo}__iexact": valor}).first()
+    if obj is None and crear:
+        datos = {"nombre": valor, "simbolo": valor} if modelo is Unidad else {"nombre": valor}
+        obj = modelo.objects.create(**datos)
+        fila.avisos.append(f"Se agregará {etiqueta.lower()} «{valor}» a la lista.")
     if obj is None:
         errores.append(f"{etiqueta} «{valor}» no existe en la lista. Pide al administrador que la agregue.")
         return ""
@@ -102,7 +112,9 @@ def _buscar_area(laboratorio, area, usuario, errores):
     return encontradas[0].pk
 
 
-def validar(registros, usuario=None):
+def validar(registros, usuario=None, crear=False):
+    """Con `crear`, las marcas, ubicaciones y unidades que falten se crean: llamarla dentro de una
+    transacción y deshacerla si solo se está revisando."""
     faltan = [c for c in ("codigo", "descripcion", "marca", "modelo", "numero_serie") if registros and c not in registros[0]]
     if faltan:
         return [Fila(1, {}, [f"Faltan columnas en el archivo: {', '.join(faltan)}. Usa la plantilla."])]
@@ -112,11 +124,12 @@ def validar(registros, usuario=None):
         fila = Fila(n, {c: reg.get(c, "") for c in ENCABEZADOS})
         e = fila.errores
         d = dict(fila.datos)
-        d["marca"] = _buscar(Marca, "nombre", d["marca"], "La marca", e)
+        for campo, (modelo, buscar_por, nombre) in AGREGABLES.items():
+            d[campo] = _buscar(modelo, buscar_por, d[campo], nombre.capitalize(), e, fila, crear)
         d["area"] = _buscar_area(d.pop("laboratorio"), d["area"], usuario, e)
-        d["ubicacion"] = _buscar(Ubicacion, "nombre", d["ubicacion"], "La ubicación", e)
-        d["unidad"] = _buscar(Unidad, "simbolo", d["unidad"], "La unidad", e)
         d["responsable"] = _buscar(Usuario, "username", d["responsable"], "El usuario responsable", e)
+        # Si el nombre no está en la lista, ese error ya lo dice: no se repite «este campo es obligatorio».
+        fallidos = {c for c in (*AGREGABLES, "area", "responsable") if fila.datos[c] and not d[c]}
         d["criticidad"] = criticidades.get((d["criticidad"] or "media").lower(), d["criticidad"])
         for num in ("rango_min", "rango_max", "resolucion", "capacidad"):
             d[num] = d[num].replace(",", ".")
@@ -124,6 +137,8 @@ def validar(registros, usuario=None):
         form = EquipoForm(data=d, usuario=usuario)
         if not form.is_valid():
             for campo, errs in form.errors.items():
+                if campo in fallidos:
+                    continue
                 etiqueta = form.fields[campo].label if campo in form.fields else ""
                 e.extend(f"{etiqueta}: {x}" if etiqueta else x for x in errs)
         codigo = d["codigo"].strip().upper()

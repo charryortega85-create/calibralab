@@ -197,12 +197,15 @@ def importar(request):
     """RF-12: revisar el archivo, mostrar errores y guardar todo junto solo si no hay ninguno."""
     if request.method == "POST" and "confirmar" in request.POST:
         datos = request.session.pop(SESION_IMPORTACION, None)
-        if not datos:
+        if not isinstance(datos, dict):
             messages.error(request, "La revisión expiró. Vuelve a subir el archivo.")
             return redirect("equipos:importar")
-        filas = [imp.Fila(n, d) for n, d in datos]
         try:
             with transaction.atomic():
+                filas = imp.validar(datos["registros"], request.user, crear=datos["crear"])
+                con_error = next((f for f in filas if f.errores), None)
+                if con_error:  # algo cambió en las listas desde la revisión
+                    raise ValueError(f"La fila {con_error.numero} dejó de ser válida: {con_error.errores[0]}")
                 creados = imp.guardar(filas, request.user)
         except ValueError as e:
             messages.error(request, f"No se guardó ningún equipo. {e}")
@@ -210,19 +213,24 @@ def importar(request):
         messages.success(request, f"Se cargaron {len(creados)} equipos.")
         return redirect("equipos:lista")
 
-    form = ImportarForm(request.POST or None, request.FILES or None)
+    form = ImportarForm(request.POST or None, request.FILES or None, usuario=request.user)
     filas = None
     if request.method == "POST" and form.is_valid():
+        crear = form.cleaned_data.get("crear_faltantes", False)
         try:
-            filas = imp.validar(imp.leer(form.cleaned_data["archivo"]), request.user)
+            registros = imp.leer(form.cleaned_data["archivo"])
         except Exception:  # archivo dañado o con otro formato
             form.add_error("archivo", "No se pudo leer el archivo. Revisa que sea la plantilla en .xlsx o .csv.")
-        if filas is not None:
+        else:
+            # Solo se revisa: lo que se agregue a las listas se deshace hasta que se confirme.
+            with transaction.atomic():
+                filas = imp.validar(registros, request.user, crear=crear)
+                transaction.set_rollback(True)
             if not filas:
                 form.add_error("archivo", "El archivo no tiene filas de equipos.")
                 filas = None
             elif not any(f.errores for f in filas):
-                request.session[SESION_IMPORTACION] = [(f.numero, f.datos) for f in filas]
+                request.session[SESION_IMPORTACION] = {"registros": registros, "crear": crear}
     con_errores = sum(1 for f in filas or [] if f.errores)
     return render(request, "equipos/importar.html", {"form": form, "filas": filas, "con_errores": con_errores})
 

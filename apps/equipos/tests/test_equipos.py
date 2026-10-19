@@ -99,3 +99,31 @@ def test_importar_con_errores_no_guarda_nada(cliente_de, tecnico, catalogo):
     r = c.post(reverse("equipos:importar"), {"archivo": SimpleUploadedFile("e.csv", contenido.encode())})
     c.post(reverse("equipos:importar"), {"confirmar": "1"})
     assert r.status_code == 200 and not Equipo.objects.exists()
+
+
+ARCHIVO_NUEVOS = ("codigo;descripcion;marca;modelo;numero_serie;ubicacion;responsable;unidad;criticidad;intervalo_meses\n"
+                  "EQ-0600;Balanza 1;Marca Nueva;M1;S1;Sala Nueva;tecnico;mg;Alta;12\n"
+                  "EQ-0601;Balanza 2;marca nueva;M1;S2;Sala Nueva;tecnico;mg;Media;6\n")
+
+
+def test_importar_sin_listas_avisa_una_vez_por_campo(cliente_de, tecnico, catalogo):
+    r = cliente_de(tecnico).post(reverse("equipos:importar"),
+                                 {"archivo": SimpleUploadedFile("e.csv", ARCHIVO_NUEVOS.encode())})
+    html = r.content.decode()
+    assert "Marca Nueva" in html and "obligatorio" not in html
+    assert "crear_faltantes" not in html  # el técnico no puede agregar a las listas
+
+
+def test_administrador_agrega_a_las_listas_al_confirmar(cliente_de, admin, tecnico, catalogo):
+    from apps.catalogos.models import Marca, Ubicacion, Unidad
+
+    c = cliente_de(admin)
+    r = c.post(reverse("equipos:importar"),
+               {"archivo": SimpleUploadedFile("e.csv", ARCHIVO_NUEVOS.encode()), "crear_faltantes": "on"})
+    html = r.content.decode()
+    assert "Se agregará la marca «Marca Nueva» a la lista." in html and "Guardar 2 equipos" in html
+    assert not Marca.objects.filter(nombre="Marca Nueva").exists()  # la revisión no guarda nada
+    c.post(reverse("equipos:importar"), {"confirmar": "1"})
+    assert Equipo.objects.filter(codigo__in=["EQ-0600", "EQ-0601"]).count() == 2
+    assert Marca.objects.filter(nombre__iexact="marca nueva").count() == 1
+    assert Ubicacion.objects.filter(nombre="Sala Nueva").exists() and Unidad.objects.filter(simbolo="mg").exists()

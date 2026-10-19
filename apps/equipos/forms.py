@@ -130,6 +130,15 @@ class ImportarForm(forms.Form):
         label="Archivo de Excel o CSV",
         help_text="Usa la plantilla: una fila por equipo. Se revisan todas las filas antes de guardar.",
     )
+    crear_faltantes = forms.BooleanField(
+        label="Agregar a las listas las marcas, ubicaciones y unidades que no existan", required=False,
+        help_text="Si no la marcas, cada nombre debe estar ya cargado en Configuración.",
+    )
+
+    def __init__(self, *args, usuario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not (usuario and usuario.es_administrador):  # las listas solo las cambia el administrador
+            self.fields.pop("crear_faltantes")
 
     def clean_archivo(self):
         a = self.cleaned_data["archivo"]

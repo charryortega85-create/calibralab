@@ -3,7 +3,7 @@
 {% block contenido %}
 <div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> /</div>
 <h1>Cargar equipos desde un archivo</h1>
-<p>Descarga la <a class="link" href="{% url 'equipos:plantilla' %}">plantilla de Excel</a>, complétala y súbela. Las marcas, laboratorios, áreas, ubicaciones, unidades y responsables deben existir en las listas.</p></div></div>
+<p>Descarga la <a class="link" href="{% url 'equipos:plantilla' %}">plantilla de Excel</a>, complétala y súbela. Los laboratorios, áreas y responsables deben existir en las listas.{% if form.crear_faltantes %} Las marcas, ubicaciones y unidades nuevas se pueden agregar al cargar.{% else %} También las marcas, ubicaciones y unidades.{% endif %}</p></div></div>
 <div class="card"><div class="card-b">
   <form method="post" class="form" enctype="multipart/form-data" novalidate>
     {% include "_form.html" %}
@@ -17,7 +17,7 @@
   {% if not con_errores %}<form method="post">{% csrf_token %}<button class="btn primary" name="confirmar" value="1">Guardar {{ filas|length }} equipos</button></form>{% endif %}</div>
   <div class="table-wrap"><table class="tbl"><thead><tr><th>Fila</th><th>Código</th><th>Resultado</th></tr></thead><tbody>
   {% for f in filas %}<tr><td>{{ f.numero }}</td><td class="mono">{{ f.codigo }}</td>
-    <td>{% if f.errores %}<ul class="errores">{% for e in f.errores %}<li>{{ e }}</li>{% endfor %}</ul>{% else %}<span class="badge b-ok">Correcta</span>{% endif %}</td></tr>{% endfor %}
+    <td>{% if f.errores %}<ul class="errores">{% for e in f.errores %}<li>{{ e }}</li>{% endfor %}</ul>{% else %}<span class="badge b-ok">Correcta</span>{% for a in f.avisos %}<div class="cell-sub">{{ a }}</div>{% endfor %}{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>
 </div>
 {% endif %}
