@@ -76,7 +76,7 @@ class Usuario(AbstractUser):
 
     @property
     def gestiona_laboratorios(self):
-        """Administrador y Encargado manejan laboratorios, áreas y usuarios (el Encargado, solo los suyos)."""
+        """Administrador y Encargado ven la página de laboratorios (el Encargado, solo los suyos)."""
         return self.rol in (Rol.ADMINISTRADOR, Rol.ENCARGADO)
 
     @property

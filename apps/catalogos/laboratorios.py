@@ -1,11 +1,10 @@
 """
-Laboratorios y sus áreas. El Administrador crea laboratorios y áreas de cualquiera; el Encargado
-de laboratorio ve solo los suyos y les agrega o corrige áreas.
+Laboratorios y sus áreas. Solo el Administrador los crea y modifica; el Encargado de laboratorio
+ve los suyos, sin cambiarlos.
 """
 from django import forms
 from django.contrib import messages
 from django.db.models import Count, Prefetch
-from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -45,11 +44,9 @@ class AreaForm(forms.ModelForm):
         model = Area
         fields = ["laboratorio", "nombre", "activo"]
 
-    def __init__(self, *args, usuario, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["laboratorio"].queryset = laboratorios_de(usuario)
-        if len(self.fields["laboratorio"].queryset) == 1:
-            self.fields["laboratorio"].initial = self.fields["laboratorio"].queryset[0]
+        self.fields["laboratorio"].queryset = Laboratorio.objects.filter(activo=True)
 
 
 def _form(request, form, titulo):
@@ -73,20 +70,13 @@ def laboratorio_editar(request, pk=None):
     return _form(request, form, f"Editar {obj}" if obj else "Nuevo laboratorio")
 
 
-@rol_requerido(*GESTORES)
+@rol_requerido(*SOLO_ADMIN)
 def area_editar(request, pk=None):
-    obj = None
-    if pk:
-        obj = get_object_or_404(Area, pk=pk)
-        if not laboratorios_de(request.user).filter(pk=obj.laboratorio_id).exists():
-            raise Http404
-    form = AreaForm(request.POST or None, instance=obj, usuario=request.user,
+    obj = get_object_or_404(Area, pk=pk) if pk else None
+    form = AreaForm(request.POST or None, instance=obj,
                     initial={"laboratorio": request.GET.get("laboratorio")} if obj is None else None)
     if obj is None:
         form.fields.pop("activo")
-    if not form.fields["laboratorio"].queryset.exists():
-        messages.error(request, "Todavía no tienes un laboratorio a cargo. Pide al administrador que te asigne uno.")
-        return redirect("catalogos:laboratorios")
     if request.method == "POST" and form.is_valid():
         area = form.save()
         messages.success(request, f"Se guardó el área «{area.nombre}» en {area.laboratorio}.")

@@ -14,7 +14,7 @@ from .models import Rol
 
 EDITORES = (Rol.TECNICO, Rol.ENCARGADO, Rol.ADMINISTRADOR)
 SOLO_ADMIN = (Rol.ADMINISTRADOR,)
-# Laboratorios, áreas y usuarios: el Encargado solo los de sus laboratorios.
+# Ven la página de laboratorios y áreas (el Encargado, solo los suyos y sin cambiarlos).
 GESTORES = (Rol.ADMINISTRADOR, Rol.ENCARGADO)
 
 
@@ -45,10 +45,6 @@ class RolRequeridoMixin(LoginRequiredMixin):
 
 class SoloAdministradorMixin(RolRequeridoMixin):
     roles_permitidos = SOLO_ADMIN
-
-
-class GestoresMixin(RolRequeridoMixin):
-    roles_permitidos = GESTORES
 
 
 class EditoresMixin(RolRequeridoMixin):

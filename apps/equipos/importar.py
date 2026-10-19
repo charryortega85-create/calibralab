@@ -93,20 +93,14 @@ def _buscar(modelo, campo, valor, etiqueta, errores, fila=None, crear=False):
 
 
 def _crear_area(laboratorio, area, usuario, errores, fila):
-    """Crea el área (y el laboratorio, solo el Administrador). El Encargado, solo en sus laboratorios."""
+    """Crea el área y, si hace falta, el laboratorio (solo lo hace el Administrador)."""
     if not laboratorio:
         errores.append(f"El área «{area}» no existe. Escribe también el laboratorio para agregarla.")
         return ""
     lab = Laboratorio.objects.filter(nombre__iexact=laboratorio).first()
     if lab is None:
-        if not usuario.es_administrador:
-            errores.append(f"El laboratorio «{laboratorio}» no está a tu cargo. Pide al administrador que lo agregue.")
-            return ""
         lab = Laboratorio.objects.create(nombre=laboratorio)
         fila.avisos.append(f"Se agregará el laboratorio «{laboratorio}».")
-    elif not usuario.es_administrador and not usuario.laboratorios.filter(pk=lab.pk).exists():
-        errores.append(f"El laboratorio «{lab}» no está a tu cargo.")
-        return ""
     fila.avisos.append(f"Se agregará el área «{area}» a {lab}.")
     return Area.objects.create(laboratorio=lab, nombre=area).pk
 

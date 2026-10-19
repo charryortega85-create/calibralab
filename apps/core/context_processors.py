@@ -13,7 +13,7 @@ MENU = [
     ("Gestión", "Mantenimiento", "i-wrench", "mantenimiento:indice", "F", TODOS),
     ("Gestión", "Reportes", "i-chart", "reportes:indice", "G", TODOS),
     ("Sistema", "Laboratorios y áreas", "i-building", "catalogos:laboratorios", "B", GESTORES),
-    ("Sistema", "Usuarios", "i-users", "cuentas:usuarios", "A", GESTORES),
+    ("Sistema", "Usuarios", "i-users", "cuentas:usuarios", "A", ADMIN),
     ("Sistema", "Registro de cambios", "i-history", "auditoria:lista", "H", ADMIN),
     ("Sistema", "Listas controladas", "i-box", "catalogos:indice", "B", ADMIN),
     ("Sistema", "Configuración", "i-settings", "cuentas:configuracion", "A", ADMIN),

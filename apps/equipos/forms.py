@@ -137,11 +137,8 @@ class ImportarForm(forms.Form):
 
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if not (usuario and usuario.gestiona_laboratorios):  # las listas las cambian el Administrador y el Encargado
+        if not (usuario and usuario.es_administrador):  # las listas solo las cambia el administrador
             self.fields.pop("crear_faltantes")
-        elif usuario.es_encargado:
-            self.fields["crear_faltantes"].label = ("Agregar lo que no exista: marcas, ubicaciones, unidades "
-                                                    "y áreas de tus laboratorios")
 
     def clean_archivo(self):
         a = self.cleaned_data["archivo"]
