@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load calibra %}
+{% block titulo %}Laboratorios y áreas{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Sistema</div><h1>Laboratorios y áreas</h1>
+<p>{% if user.es_administrador %}Cada equipo pertenece a un área de un laboratorio. El encargado de un laboratorio administra sus áreas y solo ve lo que corresponde a ellas.{% else %}Los laboratorios a tu cargo. Puedes agregar áreas y corregirlas; ves todo lo que corresponde a ellas.{% endif %}</p></div>
+<div class="actions">{% if user.es_administrador %}<a class="btn primary" href="{% url 'catalogos:laboratorio_crear' %}">{% icono "i-plus" %}Nuevo laboratorio</a>{% endif %}</div></div>
+{% for l in labs %}
+<div class="card" style="margin-bottom:16px">
+  <div class="card-h"><div><h2>{{ l.nombre }}{% if not l.activo %} <span class="badge b-mute">Inactivo</span>{% endif %}</h2>
+  <p>Encargado: {% for u in l.encargados.all %}{{ u.nombre }}{% if not forloop.last %}, {% endif %}{% empty %}sin asignar{% if user.es_administrador %} (se asigna en <a class="link" href="{% url 'cuentas:usuarios' %}">Usuarios</a>){% endif %}{% endfor %}</p></div>
+  <div class="actions">{% if user.es_administrador %}<a class="btn sm" href="{% url 'catalogos:laboratorio_editar' l.pk %}">Editar</a>{% endif %}
+  <a class="btn sm" href="{% url 'catalogos:area_crear' %}?laboratorio={{ l.pk }}">{% icono "i-plus" %}Nueva área</a>
+  <a class="btn sm ghost" href="{% url 'equipos:lista' %}?area={{ l.filtro }}">Ver equipos</a></div></div>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Área</th><th>Equipos</th><th>Estado</th><th></th></tr></thead><tbody>
+  {% for a in l.areas.all %}<tr><td>{{ a.nombre }}</td><td><a class="link" href="{% url 'equipos:lista' %}?area={{ a.pk }}">{{ a.n_equipos }}</a></td>
+    <td>{% if a.activo %}<span class="badge b-ok">Activa</span>{% else %}<span class="badge b-mute">Inactiva</span>{% endif %}</td>
+    <td><a class="btn sm" href="{% url 'catalogos:area_editar' a.pk %}">Editar</a></td></tr>
+  {% empty %}<tr><td colspan="4" class="empty">Todavía no tiene áreas.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% empty %}
+<div class="card"><div class="card-b"><p class="empty">{% if user.es_administrador %}Todavía no hay laboratorios. Crea el primero con «Nuevo laboratorio».{% else %}Todavía no tienes un laboratorio a cargo. Pide al administrador que te asigne uno.{% endif %}</p></div></div>
+{% endfor %}
+{% endblock %}

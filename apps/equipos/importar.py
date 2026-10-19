@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from openpyxl import load_workbook
 
-from apps.catalogos.models import Area, Marca, Ubicacion, Unidad
+from apps.catalogos.models import Area, Laboratorio, Marca, Ubicacion, Unidad
 from apps.cuentas.models import Usuario
 
 from .forms import EquipoForm
@@ -87,12 +87,31 @@ def _buscar(modelo, campo, valor, etiqueta, errores, fila=None, crear=False):
         obj = modelo.objects.create(**datos)
         fila.avisos.append(f"Se agregará {etiqueta.lower()} «{valor}» a la lista.")
     if obj is None:
-        errores.append(f"{etiqueta} «{valor}» no existe en la lista. Pide al administrador que la agregue.")
+        errores.append(f"{etiqueta} «{valor}» no existe en la lista.")
         return ""
     return obj.pk
 
 
-def _buscar_area(laboratorio, area, usuario, errores):
+def _crear_area(laboratorio, area, usuario, errores, fila):
+    """Crea el área (y el laboratorio, solo el Administrador). El Encargado, solo en sus laboratorios."""
+    if not laboratorio:
+        errores.append(f"El área «{area}» no existe. Escribe también el laboratorio para agregarla.")
+        return ""
+    lab = Laboratorio.objects.filter(nombre__iexact=laboratorio).first()
+    if lab is None:
+        if not usuario.es_administrador:
+            errores.append(f"El laboratorio «{laboratorio}» no está a tu cargo. Pide al administrador que lo agregue.")
+            return ""
+        lab = Laboratorio.objects.create(nombre=laboratorio)
+        fila.avisos.append(f"Se agregará el laboratorio «{laboratorio}».")
+    elif not usuario.es_administrador and not usuario.laboratorios.filter(pk=lab.pk).exists():
+        errores.append(f"El laboratorio «{lab}» no está a tu cargo.")
+        return ""
+    fila.avisos.append(f"Se agregará el área «{area}» a {lab}.")
+    return Area.objects.create(laboratorio=lab, nombre=area).pk
+
+
+def _buscar_area(laboratorio, area, usuario, errores, fila=None, crear=False):
     """El área por su nombre (y el del laboratorio). Si se deja vacía y el usuario tiene una sola área, va a esa."""
     if not area:
         if usuario is not None and not usuario.ve_todas_las_areas and usuario.areas_permitidas().count() == 1:
@@ -102,9 +121,11 @@ def _buscar_area(laboratorio, area, usuario, errores):
     if laboratorio:
         qs = qs.filter(laboratorio__nombre__iexact=laboratorio)
     encontradas = list(qs[:2])
+    if not encontradas and crear:
+        return _crear_area(laboratorio, area, usuario, errores, fila)
     if not encontradas:
         donde = f" del laboratorio «{laboratorio}»" if laboratorio else ""
-        errores.append(f"El área «{area}»{donde} no existe en la lista. Pide al administrador que la agregue.")
+        errores.append(f"El área «{area}»{donde} no existe en la lista.")
         return ""
     if len(encontradas) > 1:
         errores.append(f"Hay varias áreas «{area}»: escribe también el laboratorio.")
@@ -113,7 +134,7 @@ def _buscar_area(laboratorio, area, usuario, errores):
 
 
 def validar(registros, usuario=None, crear=False):
-    """Con `crear`, las marcas, ubicaciones y unidades que falten se crean: llamarla dentro de una
+    """Con `crear`, las marcas, ubicaciones, unidades, laboratorios y áreas que falten se crean: llamarla dentro de una
     transacción y deshacerla si solo se está revisando."""
     faltan = [c for c in ("codigo", "descripcion", "marca", "modelo", "numero_serie") if registros and c not in registros[0]]
     if faltan:
@@ -126,7 +147,7 @@ def validar(registros, usuario=None, crear=False):
         d = dict(fila.datos)
         for campo, (modelo, buscar_por, nombre) in AGREGABLES.items():
             d[campo] = _buscar(modelo, buscar_por, d[campo], nombre.capitalize(), e, fila, crear)
-        d["area"] = _buscar_area(d.pop("laboratorio"), d["area"], usuario, e)
+        d["area"] = _buscar_area(d.pop("laboratorio"), d["area"], usuario, e, fila, crear)
         d["responsable"] = _buscar(Usuario, "username", d["responsable"], "El usuario responsable", e)
         # Si el nombre no está en la lista, ese error ya lo dice: no se repite «este campo es obligatorio».
         fallidos = {c for c in (*AGREGABLES, "area", "responsable") if fila.datos[c] and not d[c]}

@@ -12,8 +12,10 @@ from django.core.exceptions import PermissionDenied
 
 from .models import Rol
 
-EDITORES = (Rol.TECNICO, Rol.ADMINISTRADOR)
+EDITORES = (Rol.TECNICO, Rol.ENCARGADO, Rol.ADMINISTRADOR)
 SOLO_ADMIN = (Rol.ADMINISTRADOR,)
+# Laboratorios, áreas y usuarios: el Encargado solo los de sus laboratorios.
+GESTORES = (Rol.ADMINISTRADOR, Rol.ENCARGADO)
 
 
 def rol_requerido(*roles):
@@ -43,6 +45,10 @@ class RolRequeridoMixin(LoginRequiredMixin):
 
 class SoloAdministradorMixin(RolRequeridoMixin):
     roles_permitidos = SOLO_ADMIN
+
+
+class GestoresMixin(RolRequeridoMixin):
+    roles_permitidos = GESTORES
 
 
 class EditoresMixin(RolRequeridoMixin):

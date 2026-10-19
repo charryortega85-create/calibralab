@@ -110,7 +110,7 @@ def test_consulta_ve_todas_las_areas_aunque_tenga_areas_marcadas(cliente_de, esc
 
 def test_encargado_ve_todas_las_areas_de_su_laboratorio(cliente_de, escenario, areas, crear_equipo, admin):
     crear_equipo("EQ-0003", area=areas["metrologia"], responsable=admin)
-    encargado = _crear("encargado", Rol.TECNICO)
+    encargado = _crear("encargado", Rol.ENCARGADO)
     encargado.laboratorios.set([areas["quimica"].laboratorio])
     html = cliente_de(encargado).get(reverse("equipos:lista")).content.decode()
     assert "EQ-0001" in html and "EQ-0003" in html and "EQ-0002" not in html
@@ -122,8 +122,24 @@ def test_encargado_ve_todas_las_areas_de_su_laboratorio(cliente_de, escenario, a
 
 def test_administrador_asigna_un_laboratorio_a_cargo(cliente_de, admin, tecnico, areas):
     lab = areas["micro"].laboratorio
-    datos = {"nombre": tecnico.nombre, "email": tecnico.email, "rol": tecnico.rol, "is_active": "on",
-             "laboratorios": [lab.pk]}
+    datos = {"nombre": tecnico.nombre, "email": tecnico.email, "rol": Rol.ENCARGADO, "is_active": "on",
+             "laboratorios": [lab.pk], "areas": [areas["quimica"].pk]}
     assert cliente_de(admin).post(reverse("cuentas:usuario_editar", args=[tecnico.pk]), datos).status_code == 302
-    assert list(tecnico.laboratorios.all()) == [lab]
-    assert "Encargado: Laboratorio Microbiológico" in cliente_de(admin).get(reverse("cuentas:usuarios")).content.decode()
+    tecnico.refresh_from_db()
+    assert tecnico.es_encargado and list(tecnico.laboratorios.all()) == [lab]
+    assert not tecnico.areas.exists()  # el encargado ve su laboratorio entero, no áreas sueltas
+    html = cliente_de(admin).get(reverse("cuentas:usuarios")).content.decode()
+    assert "Laboratorio Microbiológico (todas sus áreas)" in html
+
+
+def test_encargado_necesita_un_laboratorio(cliente_de, admin, tecnico, areas):
+    datos = {"nombre": tecnico.nombre, "email": tecnico.email, "rol": Rol.ENCARGADO, "is_active": "on"}
+    r = cliente_de(admin).post(reverse("cuentas:usuario_editar", args=[tecnico.pk]), datos)
+    assert r.status_code == 200 and "al menos un laboratorio" in r.content.decode()
+
+
+def test_tecnico_no_guarda_laboratorios(cliente_de, admin, tecnico, areas):
+    datos = {"nombre": tecnico.nombre, "email": tecnico.email, "rol": Rol.TECNICO, "is_active": "on",
+             "laboratorios": [areas["micro"].laboratorio.pk]}
+    assert cliente_de(admin).post(reverse("cuentas:usuario_editar", args=[tecnico.pk]), datos).status_code == 302
+    assert not tecnico.laboratorios.exists()

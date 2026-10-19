@@ -131,14 +131,17 @@ class ImportarForm(forms.Form):
         help_text="Usa la plantilla: una fila por equipo. Se revisan todas las filas antes de guardar.",
     )
     crear_faltantes = forms.BooleanField(
-        label="Agregar a las listas las marcas, ubicaciones y unidades que no existan", required=False,
-        help_text="Si no la marcas, cada nombre debe estar ya cargado en Configuración.",
+        label="Agregar lo que no exista: marcas, ubicaciones, unidades, laboratorios y áreas", required=False,
+        help_text="Se agrega recién al guardar los equipos. Si no la marcas, cada nombre debe estar ya cargado.",
     )
 
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if not (usuario and usuario.es_administrador):  # las listas solo las cambia el administrador
+        if not (usuario and usuario.gestiona_laboratorios):  # las listas las cambian el Administrador y el Encargado
             self.fields.pop("crear_faltantes")
+        elif usuario.es_encargado:
+            self.fields["crear_faltantes"].label = ("Agregar lo que no exista: marcas, ubicaciones, unidades "
+                                                    "y áreas de tus laboratorios")
 
     def clean_archivo(self):
         a = self.cleaned_data["archivo"]

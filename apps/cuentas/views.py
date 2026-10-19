@@ -9,7 +9,22 @@ from django.views.generic import CreateView, ListView, UpdateView
 from .forms import (ConfiguracionForm, IngresoForm, RestablecerContrasenaForm,
                     UsuarioCrearForm, UsuarioEditarForm)
 from .models import Configuracion, Rol, Usuario
-from .permisos import SOLO_ADMIN, SoloAdministradorMixin, rol_requerido
+from .permisos import GESTORES, SOLO_ADMIN, GestoresMixin, rol_requerido
+
+
+def usuarios_gestionables(gestor):
+    """El Administrador maneja a todos; el Encargado, a los técnicos de las áreas de sus laboratorios."""
+    if gestor.es_administrador:
+        return Usuario.objects.all()
+    return (Usuario.objects.filter(rol=Rol.TECNICO, areas__in=gestor.areas_permitidas())
+            .exclude(pk=gestor.pk).distinct())
+
+
+class ConEditorMixin:
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["editor"] = self.request.user
+        return kwargs
 
 
 class IngresoView(auth_views.LoginView):
@@ -26,14 +41,14 @@ class CambiarContrasenaView(SuccessMessageMixin, auth_views.PasswordChangeView):
     success_message = "Tu contraseña se cambió correctamente."
 
 
-class UsuarioListaView(SoloAdministradorMixin, ListView):
+class UsuarioListaView(GestoresMixin, ListView):
     model = Usuario
     template_name = "cuentas/usuario_lista.html"
     context_object_name = "usuarios"
     paginate_by = 25
 
     def get_queryset(self):
-        qs = Usuario.objects.prefetch_related("areas__laboratorio", "laboratorios")
+        qs = usuarios_gestionables(self.request.user).prefetch_related("areas__laboratorio", "laboratorios")
         self.q = self.request.GET.get("q", "").strip()
         self.rol = self.request.GET.get("rol", "")
         self.estado = self.request.GET.get("estado", "")
@@ -49,11 +64,12 @@ class UsuarioListaView(SoloAdministradorMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx.update(q=self.q, rol=self.rol, estado=self.estado, roles=Rol.choices)
+        ctx.update(q=self.q, rol=self.rol, estado=self.estado,
+                   roles=Rol.choices if self.request.user.es_administrador else None)
         return ctx
 
 
-class UsuarioCrearView(SoloAdministradorMixin, SuccessMessageMixin, CreateView):
+class UsuarioCrearView(GestoresMixin, ConEditorMixin, SuccessMessageMixin, CreateView):
     """RF-03: crear usuarios y asignarles un rol."""
 
     model = Usuario
@@ -63,7 +79,7 @@ class UsuarioCrearView(SoloAdministradorMixin, SuccessMessageMixin, CreateView):
     success_message = "Se creó el usuario %(nombre)s."
 
 
-class UsuarioEditarView(SoloAdministradorMixin, SuccessMessageMixin, UpdateView):
+class UsuarioEditarView(GestoresMixin, ConEditorMixin, SuccessMessageMixin, UpdateView):
     """RF-03: modificar, cambiar el rol o desactivar un usuario."""
 
     model = Usuario
@@ -72,16 +88,14 @@ class UsuarioEditarView(SoloAdministradorMixin, SuccessMessageMixin, UpdateView)
     success_url = reverse_lazy("cuentas:usuarios")
     success_message = "Se guardaron los cambios de %(nombre)s."
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["editor"] = self.request.user
-        return kwargs
+    def get_queryset(self):
+        return usuarios_gestionables(self.request.user)
 
 
-@rol_requerido(*SOLO_ADMIN)
+@rol_requerido(*GESTORES)
 def restablecer_contrasena(request, pk):
-    """RF-03: el administrador restablece la contraseña de un usuario."""
-    usuario = get_object_or_404(Usuario, pk=pk)
+    """RF-03: el administrador (o el encargado, a sus técnicos) restablece la contraseña de un usuario."""
+    usuario = get_object_or_404(usuarios_gestionables(request.user), pk=pk)
     form = RestablecerContrasenaForm(usuario, request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()

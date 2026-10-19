@@ -41,4 +41,20 @@
     btn.querySelector('use').setAttribute('href', ver ? '#i-eye-off' : '#i-eye');
     input.focus();
   });
+
+  // Formulario de usuario: los laboratorios a cargo son del Encargado; las áreas, del Técnico.
+  var rol = document.querySelector('select[name="rol"]');
+  var bloque = function (nombre) {
+    var input = document.querySelector('input[name="' + nombre + '"]');
+    return input && input.closest('.field');
+  };
+  var labs = bloque('laboratorios'), areas = bloque('areas');
+  if (rol && (labs || areas)) {
+    var mostrar = function () {
+      if (labs) labs.hidden = rol.value !== 'encargado';
+      if (areas) areas.hidden = rol.value !== 'tecnico';
+    };
+    rol.addEventListener('change', mostrar);
+    mostrar();
+  }
 })();

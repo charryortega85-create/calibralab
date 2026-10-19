@@ -362,6 +362,7 @@ a{color:inherit;text-decoration:none}
 .msg.warning{background:var(--warn-bg);color:var(--warn);border-color:transparent}
 .form{display:grid;gap:16px;max-width:560px}
 .field{display:grid;gap:6px}
+.field[hidden]{display:none}
 .field label{font-weight:600;font-size:14px}
 .field input:not([type=checkbox]),.field select,.filters input,.filters select{
   font:inherit;font-size:15px;padding:10px 12px;border-radius:10px;border:1px solid var(--border-2);

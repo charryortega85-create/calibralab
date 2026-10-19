@@ -127,3 +127,36 @@ def test_administrador_agrega_a_las_listas_al_confirmar(cliente_de, admin, tecni
     assert Equipo.objects.filter(codigo__in=["EQ-0600", "EQ-0601"]).count() == 2
     assert Marca.objects.filter(nombre__iexact="marca nueva").count() == 1
     assert Ubicacion.objects.filter(nombre="Sala Nueva").exists() and Unidad.objects.filter(simbolo="mg").exists()
+
+
+def test_administrador_agrega_laboratorio_y_area_desde_el_archivo(cliente_de, admin, tecnico, catalogo):
+    from apps.catalogos.models import Area
+
+    contenido = ("codigo;descripcion;marca;modelo;numero_serie;laboratorio;area;ubicacion;responsable;unidad\n"
+                 "EEB-09;Balanza;CAPTAR CHEM;M1;S1;Direccion de Zoonosis;EEB;Laboratorio EEB;tecnico;g\n")
+    c = cliente_de(admin)
+    r = c.post(reverse("equipos:importar"), {"archivo": SimpleUploadedFile("e.csv", contenido.encode()),
+                                             "crear_faltantes": "on"})
+    assert "Se agregará el área «EEB» a Direccion de Zoonosis." in r.content.decode()
+    c.post(reverse("equipos:importar"), {"confirmar": "1"})
+    assert Equipo.objects.get(codigo="EEB-09").area == Area.objects.get(nombre="EEB", laboratorio__nombre="Direccion de Zoonosis")
+
+
+def test_encargado_agrega_areas_solo_en_su_laboratorio(cliente_de, catalogo):
+    from apps.catalogos.models import Area, Laboratorio
+    from apps.cuentas.models import Rol
+    from conftest import _crear
+
+    Laboratorio.objects.create(nombre="Ajeno")
+    enc = _crear("enc", Rol.ENCARGADO)
+    enc.laboratorios.set([Laboratorio.objects.create(nombre="Propio")])
+    contenido = ("codigo;descripcion;marca;modelo;numero_serie;laboratorio;area;ubicacion;responsable;unidad\n"
+                 "EQ-0700;Balanza;Marca A;M1;S1;Propio;Nueva;Sala de balanzas;enc;g\n"
+                 "EQ-0701;Balanza;Marca A;M1;S2;Ajeno;Otra;Sala de balanzas;enc;g\n"
+                 "EQ-0702;Balanza;Marca A;M1;S3;Inventado;Otra;Sala de balanzas;enc;g\n")
+    r = cliente_de(enc).post(reverse("equipos:importar"), {"archivo": SimpleUploadedFile("e.csv", contenido.encode()),
+                                                           "crear_faltantes": "on"})
+    html = r.content.decode()
+    assert "Se agregará el área «Nueva» a Propio." in html
+    assert "«Ajeno» no está a tu cargo" in html and "«Inventado» no está a tu cargo" in html
+    assert not Area.objects.filter(nombre="Nueva").exists()
