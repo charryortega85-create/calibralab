@@ -9,3 +9,4 @@ weasyprint>=65
 gunicorn>=23.0
 whitenoise>=6.7
 anthropic>=1.15
+pypdfium2>=4.30

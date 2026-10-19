@@ -1,24 +1,23 @@
 """
-Consulta pública por QR: al escanear la etiqueta del equipo o el QR de un certificado se ven sus
-datos sin iniciar sesión. Solo lectura, y solo del registro cuyo código firmado lleva el QR.
+Consulta pública por QR: al escanear la etiqueta del equipo se ve su historial, y al escanear el
+QR de un certificado se puede leer el certificado. Sin iniciar sesión, solo lectura, solo del
+registro cuyo código firmado lleva el QR, y sin descargar los archivos (ver visor.py).
 """
 from pathlib import Path
 
 from django.conf import settings
-from django.http import FileResponse, Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
-from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from apps.alertas.estado import con_estado
 from apps.equipos.models import Equipo
-from apps.servicios.models import Servicio, TipoServicio
+from apps.servicios.models import Servicio
 
+from . import visor
 from .qr import firmar, leer
 
-
-def _es_imagen(nombre):
-    return nombre.rsplit(".", 1)[-1].lower() in ("jpg", "jpeg", "png", "webp")
+HISTORIAL = 30
 
 
 def _pk(tipo, token):
@@ -28,57 +27,54 @@ def _pk(tipo, token):
     return pk
 
 
-def _ultimos_por_tipo(equipo):
-    """El último servicio de cada tipo (calibración, calificación, verificación)."""
-    ultimos = {}
-    for s in equipo.servicios.select_related("proveedor").order_by("-fecha", "-pk"):
-        ultimos.setdefault(s.tipo, s)
-    return [ultimos[t] for t in TipoServicio.values if t in ultimos]
-
-
 def qr_equipo(request, token):
-    equipo = get_object_or_404(con_estado(Equipo.objects.select_related("marca", "ubicacion", "unidad")),
-                               pk=_pk("equipo", token))
-    ultimos = _ultimos_por_tipo(equipo)
-    historial = equipo.servicios.select_related("proveedor").order_by("-fecha", "-pk")[:10]
+    """Estado del equipo y su historial de servicios, cada uno con su certificado."""
+    equipo = get_object_or_404(con_estado(Equipo.objects.select_related("marca")), pk=_pk("equipo", token))
+    historial = equipo.servicios.select_related("proveedor").order_by("-fecha", "-pk")[:HISTORIAL]
     hoy = timezone.localdate()
-    return render(request, "publico/equipo.html", {
-        "e": equipo, "ultimos": [(s, firmar("certificado", s.pk)) for s in ultimos],
-        "historial": [(s, firmar("certificado", s.pk)) for s in historial], "hoy": hoy,
+    return _sin_cache(render(request, "publico/equipo.html", {
+        "e": equipo, "historial": [(s, firmar("certificado", s.pk)) for s in historial], "hoy": hoy,
         "dias": (equipo.proxima - hoy).days if equipo.proxima else None,
-    })
+    }))
 
 
 def _archivos(s):
-    archivos = []
-    if s.certificado:
-        archivos.append(("Certificado", s.certificado.name))
-    archivos += [(a.titulo, a.archivo.name) for a in s.anexos.all()]
-    return archivos
+    """Las rutas en disco de los archivos del certificado que se pueden mostrar como hojas."""
+    raiz = Path(settings.MEDIA_ROOT).resolve()
+    nombres = ([s.certificado.name] if s.certificado else []) + [a.archivo.name for a in s.anexos.all()]
+    rutas = []
+    for nombre in nombres:
+        ruta = (raiz / nombre).resolve()
+        if raiz in ruta.parents and ruta.is_file() and visor.visible(ruta):
+            rutas.append(ruta)
+    return rutas
 
 
 def qr_certificado(request, token):
-    s = get_object_or_404(Servicio.objects.select_related("equipo__unidad", "equipo__marca", "proveedor"),
-                          pk=_pk("certificado", token))
-    archivos = [{"titulo": t, "n": i, "imagen": _es_imagen(n), "pdf": n.lower().endswith(".pdf")}
-                for i, (t, n) in enumerate(_archivos(s))]
+    """El certificado para leerlo en pantalla: hojas como imágenes, sin enlace para descargar."""
+    s = get_object_or_404(Servicio.objects.select_related("equipo", "proveedor"), pk=_pk("certificado", token))
+    hojas = [(n, p) for n, ruta in enumerate(_archivos(s)) for p in range(visor.contar_paginas(ruta))]
     ultimo = Servicio.objects.filter(equipo=s.equipo, tipo=s.tipo).order_by("-fecha", "-pk").first()
-    return render(request, "publico/certificado.html", {
-        "s": s, "token": token, "archivos": archivos, "patrones": s.patrones.all(),
-        "puntos": s.puntos.all() if s.es_calibracion else [], "vigente": s == ultimo,
+    return _sin_cache(render(request, "publico/certificado.html", {
+        "s": s, "token": token, "hojas": hojas, "vigente": s == ultimo,
         "token_equipo": firmar("equipo", s.equipo_id),
-    })
+    }))
 
 
-@xframe_options_sameorigin
-def qr_archivo(request, token, n):
-    """Los archivos del certificado escaneado; ningún otro archivo del sistema."""
+def qr_hoja(request, token, n, p):
+    """Una hoja del certificado escaneado, como imagen con marca de agua. Nunca el archivo original."""
+    if request.headers.get("Sec-Fetch-Dest") == "document":
+        raise Http404  # se pide desde el visor, no abriendo la imagen sola para guardarla
     s = get_object_or_404(Servicio, pk=_pk("certificado", token))
-    archivos = _archivos(s)
-    if not 0 <= n < len(archivos):
+    rutas = _archivos(s)
+    if not 0 <= n < len(rutas) or not 0 <= p < visor.contar_paginas(rutas[n]):
         raise Http404
-    raiz = Path(settings.MEDIA_ROOT).resolve()
-    destino = (raiz / archivos[n][1]).resolve()
-    if raiz not in destino.parents or not destino.is_file():
-        raise Http404
-    return FileResponse(open(destino, "rb"), filename=destino.name)
+    r = HttpResponse(visor.pagina_jpg(rutas[n], p), content_type="image/jpeg")
+    r["Content-Disposition"] = "inline"
+    return _sin_cache(r)
+
+
+def _sin_cache(r):
+    r["Cache-Control"] = "no-store, private"
+    r["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return r

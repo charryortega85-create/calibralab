@@ -475,3 +475,11 @@ details.versiones summary{cursor:pointer;font-weight:600}
 .ia-estado.bien{background:var(--ok-bg);color:var(--ok)}
 .ia-estado.mal{background:var(--bad-bg);color:var(--bad)}
 .ia-lleno{background:var(--info-bg)!important;border-color:var(--info)!important}
+
+/* Visor del certificado en la consulta por QR (solo ver, sin descargar) */
+.visor{position:relative;display:grid;gap:12px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.visor-hoja{display:block;width:100%;height:auto;min-height:200px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;pointer-events:none}
+.visor-velo{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:24px;background:var(--surface);color:var(--text-2);font-weight:600;border-radius:8px}
+.visor-oculto .visor-hoja{filter:blur(24px)}
+.visor-oculto .visor-velo{display:flex}
+@media print{.pub .pub-main{display:none}.pub::after{content:"Este certificado es solo para consulta en pantalla.";display:block;padding:40px;font:16px sans-serif}}

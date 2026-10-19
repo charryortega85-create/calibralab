@@ -1,11 +1,11 @@
-{% extends "publico/base.html" %}{% load calibra %}
+{% extends "publico/base.html" %}{% load calibra static %}
 {% block titulo %}Certificado {{ s.numero_certificado }}{% endblock %}
 {% block enlace_interno %}{% url 'servicios:certificado' s.pk %}{% endblock %}
 {% block contenido %}
 <div class="pub-head">
   <small>Certificado de {{ s.get_tipo_display|lower }}</small>
   <h1 class="mono">{{ s.numero_certificado }}</h1>
-  <p><a class="link" href="{% url 'core:qr_equipo' token_equipo %}">{{ s.equipo.codigo }}</a> · {{ s.equipo.descripcion }} · {{ s.fecha|date:"Y-m-d" }}</p>
+  <p><a class="link" href="{% url 'core:qr_equipo' token_equipo %}">{{ s.equipo.codigo }} · {{ s.equipo.descripcion }}</a> · {{ s.proveedor }} · {{ s.fecha|date:"Y-m-d" }}</p>
 </div>
 
 <div class="status-row">
@@ -16,46 +16,12 @@
     {% if vigente %}<span class="badge b-ok">{% icono "i-check" %}Es el último del equipo</span>{% else %}<span class="badge b-mute">{% icono "i-history" %}Hay uno más reciente</span>{% endif %}</div>
 </div>
 
-<div class="card"><div class="card-h"><div><h2>Datos del certificado</h2></div></div><div class="card-b"><dl class="dl">
-  <div><dt>Proveedor</dt><dd>{{ s.proveedor }}{% if s.proveedor.acreditacion %}<div class="cell-sub">{{ s.proveedor.acreditacion }}</div>{% endif %}</dd></div>
-  <div><dt>Equipo</dt><dd>{{ s.equipo.codigo }} · {{ s.equipo.descripcion }}<div class="cell-sub">{{ s.equipo.marca }} {{ s.equipo.modelo }} · S/N {{ s.equipo.numero_serie }}</div></dd></div>
-  <div><dt>Fecha de {{ s.get_tipo_display|lower }}</dt><dd>{{ s.fecha|date:"Y-m-d" }}</dd></div>
-  <div><dt>Lugar</dt><dd>{{ s.lugar|default:"—" }}</dd></div>
-  <div><dt>Condiciones ambientales</dt><dd>{% if s.temperatura_ambiente is not None %}{{ s.temperatura_ambiente|num }} °C{% else %}—{% endif %}{% if s.humedad_relativa is not None %} · {{ s.humedad_relativa|num }} % HR{% endif %}</dd></div>
-  <div><dt>Procedimiento</dt><dd>{{ s.procedimiento|default:"—" }}</dd></div>
-  <div><dt>Trazabilidad</dt><dd>{{ s.trazabilidad|default:"—" }}</dd></div>
-  <div><dt>Realizado por</dt><dd>{{ s.realizado_por|default:"—" }}</dd></div>
-  <div><dt>Autorizado por</dt><dd>{{ s.autorizado_por|default:"—" }}</dd></div>
-</dl></div></div>
-
-{% if puntos %}
-<div class="card"><div class="card-h"><div><h2>Resultados por punto</h2><p>Unidad: {{ s.equipo.unidad }}.</p></div></div>
-  <div class="table-wrap"><table class="tbl">
-    <thead><tr><th>Referencia</th><th>Error</th><th>EMP</th><th>Resultado</th></tr></thead>
-    <tbody>{% for p in puntos %}<tr>
-      <td>{{ p.valor_referencia|num }}</td>
-      <td class="nw"><b>{{ p.error|num }}</b>{% if p.incertidumbre is not None %}<span class="cell-sub">U ±{{ p.incertidumbre|num }}</span>{% endif %}</td>
-      <td class="nw">±{{ p.emp_aplicado|num }}</td><td>{{ p.cumple|cumple }}</td></tr>{% endfor %}</tbody>
-  </table></div></div>
-{% endif %}
-
-{% if patrones %}
-<div class="card"><div class="card-h"><div><h2>Patrones utilizados</h2></div></div>
-  <div class="table-wrap"><table class="tbl"><thead><tr><th>Patrón</th><th>Certificado del patrón</th></tr></thead>
-  <tbody>{% for p in patrones %}<tr><td><span class="mono">{{ p.identificacion }}</span>{% if p.descripcion %}<span class="cell-sub">{{ p.descripcion }}</span>{% endif %}</td>
-  <td><span class="mono">{{ p.certificado|default:"—" }}</span>{% if p.proxima_calibracion %}<span class="cell-sub">Próxima: {{ p.proxima_calibracion }}</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div></div>
-{% endif %}
-
-<div class="card"><div class="card-h"><div><h2>Archivo del certificado</h2>
-  <p>{% if archivos %}{{ archivos|length }} archivo{{ archivos|length|pluralize }}.{% else %}Todavía no se adjuntó el archivo.{% endif %}</p></div></div>
-  {% if archivos %}<div class="card-b stack">
-  {% for a in archivos %}{% url 'core:qr_archivo' token a.n as ruta %}
-    <div class="cert-archivo"><div class="cert-archivo-h"><b>{{ a.titulo }}</b>
-      <a class="btn" href="{{ ruta }}" target="_blank" rel="noopener">{% icono "i-file" %}Abrir{% if a.pdf %} el PDF{% endif %}</a></div>
-      {% if a.imagen %}<a href="{{ ruta }}" target="_blank" rel="noopener"><img class="cert-img" src="{{ ruta }}" alt="{{ a.titulo }} del certificado {{ s.numero_certificado }}" loading="lazy"></a>
-      {% elif a.pdf %}<iframe class="cert-pdf" src="{{ ruta }}" title="{{ a.titulo }}"></iframe>{% endif %}
-    </div>
-  {% endfor %}
+<div class="card"><div class="card-h"><div><h2>Certificado</h2>
+  <p>{% if hojas %}Solo para consulta en pantalla: no se puede descargar ni imprimir.{% else %}Todavía no se adjuntó el certificado.{% endif %}</p></div></div>
+  {% if hojas %}<div class="card-b visor" id="visor">
+    {% for n, p in hojas %}<canvas class="visor-hoja" data-src="{% url 'core:qr_hoja' token n p %}" aria-label="Hoja {{ forloop.counter }} del certificado {{ s.numero_certificado }}" role="img"></canvas>{% endfor %}
+    <div class="visor-velo" aria-hidden="true">Vuelve a esta ventana para ver el certificado.</div>
   </div>{% endif %}
 </div>
+<script src="{% static 'js/visor.js' %}"></script>
 {% endblock %}
