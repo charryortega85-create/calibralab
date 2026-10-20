@@ -14,6 +14,11 @@ class IngresoForm(AuthenticationForm):
         "inactive": "Este usuario está desactivado. Pide al administrador que lo active.",
     }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(placeholder="Tu usuario, por ejemplo mperez")
+        self.fields["password"].widget.attrs.update(placeholder="Tu contraseña")
+
 
 class AreasMixin:
     """Los laboratorios a cargo (Encargado) y las áreas (Técnico) de la persona."""
