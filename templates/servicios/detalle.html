@@ -1,0 +1,67 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}{{ s.numero_certificado }}{% endblock %}
+{% block contenido %}
+<div class="page-head">
+  <div><div class="crumbs"><a class="link" href="{% url 'servicios:lista' %}">Servicios</a> / <a class="link" href="{{ s.equipo.get_absolute_url }}">{{ s.equipo.codigo }}</a></div>
+  <h1>{{ s.get_tipo_display }} {{ s.numero_certificado }}</h1>
+  <p>{{ s.equipo }} · {{ s.fecha|date:"Y-m-d" }} · {{ s.proveedor }}</p></div>
+  <div class="actions">
+    <a class="btn" href="{% url 'servicios:certificado' s.pk %}">{% icono "i-eye" %}Certificado y QR</a>
+    {% if user.puede_editar %}<a class="btn" href="{% url 'servicios:corregir' s.pk %}">Corregir</a>{% endif %}
+  </div>
+</div>
+<div class="stack">
+  <div class="status-row">
+    <div class="status-box"><small>{% if s.es_calibracion %}Dictamen{% else %}Resultado{% endif %}</small>{{ s|dictamen }}
+      {% if no_cumplen %}<span class="sub">{{ no_cumplen }} punto{{ no_cumplen|pluralize }} no cumple{{ no_cumplen|pluralize:"n" }} el EMP</span>{% endif %}</div>
+    {% if s.es_calibracion %}
+    <div class="status-box"><small>Próxima calibración</small><b>{{ s.proxima_fecha|date:"Y-m-d"|default:"Sin fecha nueva" }}</b>
+      <span class="sub">{% if s.justificacion_proxima %}Cambiada a mano (calculada: {{ s.proxima_fecha_calculada|date:"Y-m-d" }}). Motivo: {{ s.justificacion_proxima }}{% elif s.proxima_fecha %}Fecha de ejecución + {{ s.equipo.intervalo_meses }} meses (RN-02){% else %}Un no apto no da fecha nueva{% endif %}</span></div>
+    <div class="status-box"><small>Regla de comparación</small><b>{{ s.get_regla_display }}</b></div>
+    {% else %}
+    <div class="status-box"><small>Vigente hasta</small><b>{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}</b></div>
+    {% endif %}
+  </div>
+  {% with sin_u=s.puntos_sin_incertidumbre %}
+  {% if sin_u %}<div class="msg warning" role="status">{{ sin_u }} punto{{ sin_u|pluralize }} sin incertidumbre (U). El ONA pide que el certificado informe la incertidumbre de cada resultado: revisa el certificado{% if user.puede_editar %} y <a class="link" href="{% url 'servicios:corregir' s.pk %}">complétala</a>{% endif %}.</div>{% endif %}
+  {% endwith %}
+
+  {% if s.resultado == "no_conforme" and s.es_calibracion %}
+  <div class="card"><div class="card-h"><div><h2>Equipo no apto (RN-05)</h2>
+    <p>{% if anterior %}Pudo estar fuera de tolerancia desde su última calibración conforme, el <b>{{ anterior.fecha|date:"Y-m-d" }}</b>. Revisa los resultados que emitió el laboratorio desde esa fecha.{% else %}No hay una calibración conforme anterior: revisa todos los resultados obtenidos con este equipo.{% endif %}</p></div></div>
+    <div class="card-b">
+      {% if decision %}<p><b>Decisión:</b> {{ decision.get_decision_display }} · {{ decision.decidido_por }} · {{ decision.creado|date:"Y-m-d H:i" }}{% if decision.justificacion %} · {{ decision.justificacion }}{% endif %}</p>
+      {% elif user.puede_editar %}<a class="btn primary" href="{% url 'servicios:decision' s.pk %}">Decidir qué hacer con el equipo</a>{% endif %}
+      {% if evaluacion %}<p><b>Evaluación del efecto:</b> {{ evaluacion.get_conclusion_display }} ({{ evaluacion.fecha|date:"Y-m-d" }}, {{ evaluacion.evaluado_por }}). <a class="link" href="{% url 'mantenimiento:evaluacion' s.pk %}">Ver</a></p>
+      {% elif user.puede_editar %}<p style="margin-top:8px"><a class="link" href="{% url 'mantenimiento:evaluacion' s.pk %}">Registrar la evaluación del efecto sobre los resultados (RF-35)</a></p>{% endif %}
+    </div></div>
+  {% endif %}
+
+  {% if s.es_calibracion %}
+  <div class="card"><div class="card-h"><div><h2>Resultados por punto</h2><p>Con el EMP que tenía la ficha al calibrar (RN-06). Unidad: {{ s.equipo.unidad }}.</p></div></div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Referencia</th><th>Lectura</th><th>Error informado</th><th>Error</th><th>U</th><th>EMP</th><th>Resultado</th></tr></thead>
+      <tbody>{% for p in puntos %}<tr>
+        <td>{{ p.valor_referencia|num }}</td><td>{{ p.valor_leido|num }}</td><td>{{ p.error_informado|num }}</td>
+        <td><b>{{ p.error|num }}</b></td><td>{{ p.incertidumbre|num }}</td>
+        <td class="nw">±{{ p.emp_aplicado|num }} <span class="cell-sub">({{ p.get_emp_tipo_display }} {{ p.emp_valor|num }})</span></td>
+        <td>{{ p.cumple|cumple }}</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+  {% endif %}
+
+  <div class="cols-2">
+    <div class="card"><div class="card-h"><div><h2>Datos del servicio</h2></div></div><div class="card-b"><dl class="dl">
+      <div><dt>Trazabilidad declarada</dt><dd>{{ s.trazabilidad|default:"—" }}</dd></div>
+      <div><dt>Lugar y condiciones</dt><dd>{{ s.lugar|default:"—" }}{% if s.temperatura_ambiente is not None %} · {{ s.temperatura_ambiente|num }} °C{% endif %}{% if s.humedad_relativa is not None %} · {{ s.humedad_relativa|num }} % HR{% endif %}</dd></div>
+      <div><dt>Procedimiento</dt><dd>{{ s.procedimiento|default:"—" }}</dd></div>
+      <div><dt>Realizado / autorizado por</dt><dd>{{ s.realizado_por|default:"—" }} / {{ s.autorizado_por|default:"—" }}</dd></div>
+      <div><dt>Ajustes realizados</dt><dd>{{ s.ajustes|default:"—" }}</dd></div>
+      {% if not s.es_calibracion %}<div><dt>Criterios de aceptación</dt><dd>{{ s.criterios_aceptacion|default:"—" }}</dd></div>{% endif %}
+      <div><dt>Observaciones</dt><dd>{{ s.observaciones|default:"—" }}</dd></div>
+      <div><dt>Registrado por</dt><dd>{{ s.registrado_por }} · {{ s.creado|date:"Y-m-d H:i" }}</dd></div>
+    </dl></div></div>
+    <div class="card"><div class="card-h"><div><h2>Versiones</h2><p>Las correcciones conservan la versión anterior (RF-24).</p></div></div>
+      <div class="card-b"><ul class="histo">{% for v in versiones %}<li><b>{{ v.history_date|date:"Y-m-d H:i" }}</b> · {{ v.get_history_type_display }} · {{ v.history_user|default:"Sistema" }}{% if v.history_change_reason %} · «{{ v.history_change_reason }}»{% endif %}{% if v.certificado %} · <a class="link" href="{% url 'core:archivo' v.certificado %}">certificado</a>{% endif %}</li>{% endfor %}</ul></div></div>
+  </div>
+</div>
+{% endblock %}

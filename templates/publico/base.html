@@ -1,0 +1,20 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+{% include "_head.html" %}
+<meta name="robots" content="noindex, nofollow">
+<title>{% block titulo %}{% endblock %} · CalibraLab</title>
+</head>
+<body class="pub">
+{% include "_iconos.html" %}
+<header class="pub-top">
+  <span class="brand"><span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-gauge"/></svg></span>
+  <span><b>CalibraLab</b><small>Consulta por código QR</small></span></span>
+</header>
+<main class="pub-main stack">
+  {% block contenido %}{% endblock %}
+  <p class="pub-pie">Datos de solo lectura, tal como están registrados en CalibraLab al {% now "Y-m-d H:i" %}.
+  Para registrar o corregir datos, <a class="link" href="{% block enlace_interno %}{% url 'core:inicio' %}{% endblock %}">ingresa al sistema</a>.</p>
+</main>
+</body>
+</html>

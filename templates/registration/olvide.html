@@ -1,0 +1,11 @@
+{% extends "registration/_ingreso_base.html" %}
+{% block titulo %}Recuperar la contraseña{% endblock %}
+{% block panel %}
+      <h1>¿Olvidaste tu contraseña?</h1>
+      <p class="ingreso-sub">Escribe tu usuario o tu correo. Te enviaremos un enlace para crear una contraseña nueva.</p>
+      <form method="post" class="form" novalidate>
+        {% include "_form.html" %}
+        <button class="btn primary ingreso-btn" type="submit">Enviar el enlace</button>
+      </form>
+      <p class="ingreso-ayuda"><a class="link" href="{% url 'cuentas:login' %}">Volver a ingresar</a></p>
+{% endblock %}

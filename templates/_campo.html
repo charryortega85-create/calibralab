@@ -1,9 +1,16 @@
 <div class="field{% if campo.errors %} has-err{% endif %}">
-  {% if campo.field.widget.input_type == "checkbox" %}
+  {% if campo.field.widget.allow_multiple_selected and campo.field.widget.input_type == "checkbox" %}
+    <fieldset class="checks"><legend>{{ campo.label }}</legend>
+    {% for op in campo %}<label class="check" for="{{ op.id_for_label }}">{{ op.tag }} {{ op.choice_label }}</label>{% endfor %}
+    {% if not campo.field.choices %}<span class="cell-sub">Todavía no hay opciones en la lista.</span>{% endif %}
+    </fieldset>
+  {% elif campo.field.widget.input_type == "checkbox" %}
     <label class="check" for="{{ campo.id_for_label }}">{{ campo }} {{ campo.label }}</label>
   {% else %}
     <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>
-    {{ campo }}
+    {% if campo.field.widget.input_type == "password" %}
+    <div class="pass-wrap">{{ campo }}<button class="pass-ver" type="button" aria-label="Mostrar la contraseña" aria-pressed="false" title="Mostrar la contraseña"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg></button></div>
+    {% else %}{{ campo }}{% endif %}
   {% endif %}
   {% for e in campo.errors %}<div class="err" role="alert">{{ e }}</div>{% endfor %}
   {% if campo.help_text %}<div class="help">{{ campo.help_text|safe }}</div>{% endif %}

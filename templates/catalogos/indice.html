@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Listas controladas{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs">Sistema / Listas controladas</div><h1>Listas controladas</h1>
+<p>Los datos que se eligen de una lista en lugar de escribirse, para que no aparezcan escritos de varias formas.</p></div></div>
+<div class="mod-grid">
+  <a class="mod" href="{% url 'catalogos:laboratorios' %}"><b>Laboratorios y áreas</b><small>En su propia página</small></a>
+{% for clave, titulo, n in resumen %}
+  <a class="mod" href="{% url 'catalogos:lista' clave %}"><b>{{ titulo|capfirst }}</b><small>En uso: {{ n }}</small></a>
+{% endfor %}
+</div>
+{% endblock %}

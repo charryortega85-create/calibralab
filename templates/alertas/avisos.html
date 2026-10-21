@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Avisos por correo{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'alertas:estado' %}">Estado y alertas</a> /</div><h1>Avisos por correo</h1>
+<p>Se envía un aviso cuando el equipo entra en el plazo de aviso y otro cuando vence. {{ pendientes|length }} aviso{{ pendientes|length|pluralize }} pendiente{{ pendientes|length|pluralize }} para el próximo envío.</p></div>
+{% if user.es_administrador %}<div class="actions"><form method="post" action="{% url 'alertas:enviar' %}">{% csrf_token %}<button class="btn primary" type="submit">{% icono "i-mail" %}Enviar los pendientes ahora</button></form></div>{% endif %}</div>
+<form class="filters" method="get">
+  <div class="field"><label for="tipo">Tipo de aviso</label><select id="tipo" name="tipo"><option value="">Todos</option>{% for v, t in tipos %}<option value="{{ v }}"{% if f.tipo == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="resultado">Resultado</label><select id="resultado" name="resultado"><option value="">Todos</option>{% for v, t in resultados %}<option value="{{ v }}"{% if f.resultado == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="destinatario">Destinatario</label><select id="destinatario" name="destinatario"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.pk }}"{% if f.destinatario == u.pk|stringformat:"d" %} selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+  <button class="btn" type="submit">Filtrar</button>
+</form>
+<div class="card"><div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Fecha y hora de envío</th><th>Equipo</th><th>Tipo de aviso</th><th>Próxima fecha considerada</th><th>Destinatario</th><th>Resultado del envío</th></tr></thead>
+  <tbody>{% for a in pagina %}<tr>
+    <td class="nw mono">{{ a.enviado_en|date:"Y-m-d H:i" }}</td>
+    <td><a class="code link" href="{{ a.equipo.get_absolute_url }}">{{ a.equipo.codigo }}</a><span class="cell-sub">{{ a.equipo.descripcion }}</span></td>
+    <td>{% if a.tipo == "vencido" %}<span class="badge b-bad">{% icono "i-alert" %}Vencido</span>{% else %}<span class="badge b-warn">{% icono "i-clock" %}Por vencer</span>{% endif %}</td>
+    <td class="nw">{{ a.proxima_fecha|date:"Y-m-d" }}</td>
+    <td>{{ a.destinatario }}<span class="cell-sub">{{ a.correo }}</span></td>
+    <td>{% if a.resultado == "enviado" %}<span class="badge b-ok">{% icono "i-check" %}Enviado</span>{% else %}<a href="{% url 'alertas:aviso' a.pk %}" class="badge b-bad">{% icono "i-x" %}Error · revisar</a>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="6" class="empty">Todavía no se envió ningún aviso.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% if pagina.has_other_pages %}<nav class="pager">{% if pagina.has_previous %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>{% if pagina.has_next %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+</div>
+{% endblock %}

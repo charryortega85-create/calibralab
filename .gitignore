@@ -7,3 +7,5 @@ staticfiles/
 media/
 .pytest_cache/
 *.sqlite3
+servidor.bat
+servidor.log

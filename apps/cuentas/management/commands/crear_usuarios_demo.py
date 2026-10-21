@@ -7,7 +7,7 @@ USUARIOS = [
     ("mperez", "María Pérez", "mperez@lab.example", Rol.ADMINISTRADOR),
     ("lgimenez", "Lucía Giménez", "lgimenez@lab.example", Rol.TECNICO),
     ("cbenitez", "Carlos Benítez", "cbenitez@lab.example", Rol.TECNICO),
-    ("aduarte", "Andrés Duarte", "aduarte@lab.example", Rol.TECNICO),
+    ("aduarte", "Andrés Duarte", "aduarte@lab.example", Rol.ENCARGADO),
     ("auditor", "Ana Auditora", "auditor@lab.example", Rol.CONSULTA),
 ]
 

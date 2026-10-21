@@ -26,4 +26,55 @@
       try { localStorage.setItem('calibralab-tema', t); } catch (e) {}
     });
   }
+
+  // Ver u ocultar la contraseña mientras se escribe.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.pass-ver');
+    if (!btn) return;
+    var input = btn.parentNode.querySelector('input');
+    var ver = input.type === 'password';
+    input.type = ver ? 'text' : 'password';
+    var texto = ver ? 'Ocultar la contraseña' : 'Mostrar la contraseña';
+    btn.setAttribute('aria-pressed', ver ? 'true' : 'false');
+    btn.setAttribute('aria-label', texto);
+    btn.title = texto;
+    btn.querySelector('use').setAttribute('href', ver ? '#i-eye-off' : '#i-eye');
+    input.focus();
+  });
+
+  // Formulario de usuario: los laboratorios a cargo son del Encargado; las áreas, del Técnico.
+  var rol = document.querySelector('select[name="rol"]');
+  var bloque = function (nombre) {
+    var input = document.querySelector('input[name="' + nombre + '"]');
+    return input && input.closest('.field');
+  };
+  var labs = bloque('laboratorios'), areas = bloque('areas');
+  if (rol && (labs || areas)) {
+    var mostrar = function () {
+      if (labs) labs.hidden = rol.value !== 'encargado';
+      if (areas) areas.hidden = rol.value !== 'tecnico';
+    };
+    rol.addEventListener('change', mostrar);
+    mostrar();
+  }
+
+  // Ficha del equipo: según el tipo de instrumento se muestran solo los datos de su familia.
+  var tipoEq = document.querySelector('select[name="tipo"][data-familias]');
+  if (tipoEq) {
+    var mapa = JSON.parse(tipoEq.dataset.familias || '{}');
+    var datosTipo = Array.prototype.slice.call(document.querySelectorAll('[data-familia]'));
+    var aplicarTipo = function () {
+      var fam = mapa[tipoEq.value] || 'otro';
+      var cajas = [];
+      datosTipo.forEach(function (input) {
+        var campo = input.closest('.field');
+        campo.hidden = input.dataset.familia !== fam;
+        var caja = campo.closest('.card');
+        if (cajas.indexOf(caja) < 0) cajas.push(caja);
+      });
+      cajas.forEach(function (caja) { caja.hidden = !caja.querySelector('.field:not([hidden]) [data-familia]'); });
+    };
+    tipoEq.addEventListener('change', aplicarTipo);
+    aplicarTipo();
+  }
 })();

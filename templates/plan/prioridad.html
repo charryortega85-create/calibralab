@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Prioridad sugerida{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'plan:indice' %}">Plan y presupuesto</a> /</div>
+<h1>Orden de prioridad sugerido para {{ anio }}</h1>
+<p>Equipos que deben calibrarse hasta fin de {{ anio }}: primero los vencidos y sin registro, luego por criticidad (alta a baja) y por fecha de vencimiento. Es una propuesta: la decisión es del laboratorio.</p></div>
+<form method="get" class="actions"><div class="field"><label class="sr-only" for="anio">Año</label><input id="anio" type="number" name="anio" value="{{ anio }}" min="2000" max="2100" style="width:110px"></div><button class="btn" type="submit">Ver</button></form></div>
+<div class="card"><div class="table-wrap"><table class="tbl">
+<thead><tr><th>#</th><th>Código</th><th>Equipo</th><th>Criticidad</th><th>Próxima calibración</th><th>Estado</th><th>Lotes</th></tr></thead>
+<tbody>{% for e in equipos %}<tr><td>{{ forloop.counter }}</td><td><a class="code link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a></td><td>{{ e.descripcion }}<span class="cell-sub">{{ e.ubicacion }} · {{ e.responsable }}</span></td>
+<td>{{ e.criticidad|criticidad }}</td><td class="nw">{{ e.proxima|date:"Y-m-d"|default:"—" }}</td><td>{{ e.estado_cal|estado_cal }}</td><td>{% for l in e.lotes.all %}{{ l.codigo }} {% empty %}<span class="cell-sub">Sin lote</span>{% endfor %}</td></tr>
+{% empty %}<tr><td colspan="7" class="empty">Ningún equipo vence hasta fin de {{ anio }}.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Aviso con error{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'alertas:avisos' %}">Avisos por correo</a> /</div>
+<h1>Revisar el envío a {{ a.correo }}</h1></div></div>
+<div class="card"><div class="card-b"><dl class="dl">
+  <div><dt>Equipo</dt><dd><a class="link" href="{{ a.equipo.get_absolute_url }}">{{ a.equipo }}</a></dd></div>
+  <div><dt>Tipo de aviso</dt><dd>{{ a.get_tipo_display }}</dd></div>
+  <div><dt>Fecha y hora</dt><dd>{{ a.enviado_en|date:"Y-m-d H:i" }}</dd></div>
+  <div><dt>Resultado</dt><dd>{{ a.get_resultado_display }}</dd></div>
+  <div style="grid-column:1/-1"><dt>Detalle del error</dt><dd class="mono">{{ a.detalle|default:"—" }}</dd></div>
+</dl>
+<p class="cell-sub" style="margin-top:12px">Un aviso con error se vuelve a intentar en el próximo envío diario. Revisa que el correo del responsable sea correcto.</p></div></div>
+{% endblock %}

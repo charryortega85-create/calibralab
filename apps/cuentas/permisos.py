@@ -12,8 +12,10 @@ from django.core.exceptions import PermissionDenied
 
 from .models import Rol
 
-EDITORES = (Rol.TECNICO, Rol.ADMINISTRADOR)
+EDITORES = (Rol.TECNICO, Rol.ENCARGADO, Rol.ADMINISTRADOR)
 SOLO_ADMIN = (Rol.ADMINISTRADOR,)
+# Ven la página de laboratorios y áreas (el Encargado, solo los suyos y sin cambiarlos).
+GESTORES = (Rol.ADMINISTRADOR, Rol.ENCARGADO)
 
 
 def rol_requerido(*roles):

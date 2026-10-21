@@ -33,13 +33,23 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "axes",
+    "simple_history",
     "apps.core",
     "apps.cuentas",
     "apps.auditoria",
+    "apps.catalogos",
+    "apps.equipos",
+    "apps.servicios",
+    "apps.alertas",
+    "apps.plan",
+    "apps.mantenimiento",
+    "apps.reportes",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Sirve el CSS y el JavaScript con gunicorn (Docker y servidor), sin depender de DEBUG.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -47,6 +57,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.auditoria.middleware.UsuarioActualMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
     # Axes va al final: bloquea el acceso tras varios intentos fallidos (RNF-05).
     "axes.middleware.AxesMiddleware",
 ]
@@ -89,6 +100,8 @@ AUTH_USER_MODEL = "cuentas.Usuario"
 LOGIN_URL = "cuentas:login"
 LOGIN_REDIRECT_URL = "core:inicio"
 LOGOUT_REDIRECT_URL = "cuentas:login"
+# RF-04: el enlace para recuperar la contraseña vence a las 24 horas (y sirve una sola vez).
+PASSWORD_RESET_TIMEOUT = int(env("RECUPERAR_HORAS", "24")) * 3600
 
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
@@ -123,10 +136,12 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("DJANGO_SSL_REDIRECT", True)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # En la red local sin HTTPS (DJANGO_SSL_REDIRECT=false) las cookies seguras impedirían iniciar sesión.
+    if SECURE_SSL_REDIRECT:
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 # --- Idioma y zona horaria (RNF-14) --------------------------------------------------
 LANGUAGE_CODE = "es"
@@ -150,3 +165,31 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "CalibraLab <avisos@calibralab.example>")
+
+# --- Archivos adjuntos (certificados, documentos) -------------------------------------
+# Se sirven solo a usuarios con sesión iniciada (ver apps.core.views.archivo).
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+TAMANO_MAXIMO_ADJUNTO_MB = int(env("TAMANO_MAXIMO_ADJUNTO_MB", "20"))
+EXTENSIONES_PERMITIDAS = ["pdf", "jpg", "jpeg", "png", "webp", "doc", "docx", "xls", "xlsx"]
+
+# Dirección pública del sistema, para los enlaces de los correos y de la etiqueta QR (RF-14).
+URL_SISTEMA = env("URL_SISTEMA", "http://localhost:8000")
+# Firma de los códigos QR. Si se cambia, los QR ya impresos dejan de abrir la consulta.
+QR_CLAVE = env("QR_CLAVE", SECRET_KEY)
+
+# --- Lectura de certificados con IA (opcional) -----------------------------------------
+# Se activa solo si hay una clave de la API de Anthropic. El contenido del certificado se
+# envía a ese servicio; una persona revisa siempre los datos antes de guardar.
+IA_CLAVE = env("ANTHROPIC_API_KEY", "")
+IA_MODELO = env("IA_MODELO", "claude-opus-5-5")
+IA_MAXIMO_HOJAS = int(env("IA_MAXIMO_HOJAS", "3"))
+# Dólares por millón de tokens (entrada, salida), para el registro de costos.
+IA_PRECIOS = {
+    "claude-opus-5-5": (4.00, 20.00),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-opus-4-8": (5.00, 25.00),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-haiku-5-5": (0.10, 0.50),
+}

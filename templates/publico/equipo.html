@@ -1,0 +1,31 @@
+{% extends "publico/base.html" %}{% load calibra %}
+{% block titulo %}{{ e.codigo }}{% endblock %}
+{% block enlace_interno %}{{ e.get_absolute_url }}{% endblock %}
+{% block contenido %}
+<div class="pub-head">
+  <small>Equipo</small>
+  <h1>{{ e.codigo }} · {{ e.descripcion }}</h1>
+  <p>{{ e.marca }} {{ e.modelo }} · S/N {{ e.numero_serie }}</p>
+</div>
+
+<div class="status-row">
+  <div class="status-box"><small>Estado de calibración</small>{{ e.estado_cal|estado_cal }}
+    <span class="sub">{% if e.proxima %}Próxima calibración: <b>{{ e.proxima|date:"Y-m-d" }}</b> ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin calibración conforme{% endif %}</span></div>
+  <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}</div>
+</div>
+
+<div class="card"><div class="card-h"><div><h2>Historial del equipo</h2>
+  <p>{% if historial %}Toca un servicio para ver su certificado.{% else %}Todavía no tiene servicios registrados.{% endif %}</p></div></div>
+  {% if historial %}<div class="card-b stack">
+  {% for s, t in historial %}
+    <a class="pub-cert" href="{% url 'core:qr_certificado' t %}">
+      <span><small>{{ s.get_tipo_display }} · {{ s.fecha|date:"Y-m-d" }}</small>
+      <b class="mono">{{ s.numero_certificado }}</b><span class="cell-sub">{{ s.proveedor }}</span></span>
+      <span class="pub-cert-r">{{ s|dictamen }}
+        <span class="cell-sub">{% if s.es_calibracion %}{% if s.proxima_fecha %}Próxima: {{ s.proxima_fecha|date:"Y-m-d" }}{% endif %}{% elif s.vigencia_hasta %}Vigente hasta {{ s.vigencia_hasta|date:"Y-m-d" }}{% if s.vigencia_hasta < hoy %} (vencida){% endif %}{% endif %}</span>
+        <span class="link">Ver certificado</span></span>
+    </a>
+  {% endfor %}
+  </div>{% endif %}
+</div>
+{% endblock %}

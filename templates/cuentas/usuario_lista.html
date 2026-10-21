@@ -16,7 +16,7 @@
 <div class="card">
   <div class="table-wrap">
     <table class="tbl">
-      <thead><tr><th>Nombre</th><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Usuario</th><th>Correo</th><th>Rol</th><th>Áreas</th><th>Estado</th><th>Acciones</th></tr></thead>
       <tbody>
       {% for u in usuarios %}
         <tr>
@@ -24,12 +24,13 @@
           <td class="mono">{{ u.username }}</td>
           <td>{{ u.email }}</td>
           <td>{{ u.get_rol_display }}</td>
+          <td>{% if u.es_administrador or u.rol == "consulta" %}<span class="cell-sub">Todas</span>{% elif u.es_encargado %}{% for l in u.laboratorios.all %}<span class="cell-sub">{{ l }} (todas sus áreas)</span>{% empty %}<span class="cell-sub">Sin laboratorio asignado</span>{% endfor %}{% else %}{% for a in u.areas.all %}<span class="cell-sub">{{ a }}</span>{% empty %}<span class="cell-sub">Todas</span>{% endfor %}{% endif %}</td>
           <td>{% if u.is_active %}<span class="badge b-ok"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Activo</span>{% else %}<span class="badge b-mute"><svg class="i" aria-hidden="true"><use href="#i-minus"/></svg>Desactivado</span>{% endif %}</td>
           <td class="nw"><a class="btn sm" href="{% url 'cuentas:usuario_editar' u.pk %}">Editar</a>
               <a class="btn sm" href="{% url 'cuentas:usuario_contrasena' u.pk %}">Restablecer contraseña</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="empty">Ningún usuario coincide con la búsqueda.</td></tr>
+        <tr><td colspan="7" class="empty">Ningún usuario coincide con la búsqueda.</td></tr>
       {% endfor %}
       </tbody>
     </table>

@@ -2,13 +2,16 @@
 {% block titulo %}Restablecer contraseña{% endblock %}
 {% block contenido %}
 <div class="page-head"><div><div class="crumbs">Sistema / <a class="link" href="{% url 'cuentas:usuarios' %}">Usuarios</a></div>
-<h1>Restablecer la contraseña de {{ usuario.nombre }}</h1>
-<p>Escribe una contraseña nueva de al menos 10 caracteres y entrégasela a la persona de forma segura.</p></div></div>
-<div class="card"><div class="card-b">
-  <form method="post" class="form" novalidate>
+<h1>Restablecer la contraseña de {{ usuario.nombre }}</h1></div></div>
+<div class="card"><div class="card-h"><div><h2>Enviar un enlace por correo (recomendado)</h2>
+  <p>{{ usuario.nombre }} recibe en {{ usuario.email }} un enlace para crear su contraseña. Nadie más la conoce. El enlace sirve una vez y vence en {{ horas }} horas.</p></div></div>
+  <div class="card-b"><form method="post">{% csrf_token %}<button class="btn primary" name="enviar_enlace" value="1">Enviar el enlace a {{ usuario.email }}</button></form></div></div>
+<div class="card" style="margin-top:16px"><div class="card-h"><div><h2>O escribir una contraseña</h2>
+  <p>Si no tiene correo: escribe una de al menos 10 caracteres y entrégasela de forma segura.</p></div></div>
+  <div class="card-b"><form method="post" class="form" novalidate>
     {% include "_form.html" %}
-    <div class="form-actions"><button class="btn primary" type="submit">Restablecer</button>
-    <a class="btn" href="{% url 'cuentas:usuarios' %}">Cancelar</a></div>
-  </form>
-</div></div>
+    <div class="form-actions"><button class="btn" type="submit">Guardar esta contraseña</button>
+    <a class="btn ghost" href="{% url 'cuentas:usuarios' %}">Cancelar</a></div>
+  </form></div>
+</div>
 {% endblock %}

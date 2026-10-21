@@ -154,6 +154,7 @@ a{color:inherit;text-decoration:none}
 .badge .i{width:14px;height:14px;stroke-width:2.2}
 .b-ok{background:var(--ok-bg);color:var(--ok)}
 .b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-info{background:var(--info-bg);color:var(--info)}
 .b-bad{background:var(--bad-bg);color:var(--bad)}
 .b-mute{background:var(--mute-bg);color:var(--mute)}
 .tag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:6px;background:var(--mute-bg);color:var(--mute);font-size:11px;font-weight:600;line-height:1.6;vertical-align:1px;white-space:nowrap}
@@ -361,6 +362,7 @@ a{color:inherit;text-decoration:none}
 .msg.warning{background:var(--warn-bg);color:var(--warn);border-color:transparent}
 .form{display:grid;gap:16px;max-width:560px}
 .field{display:grid;gap:6px}
+.field[hidden]{display:none}
 .field label{font-weight:600;font-size:14px}
 .field input:not([type=checkbox]),.field select,.filters input,.filters select{
   font:inherit;font-size:15px;padding:10px 12px;border-radius:10px;border:1px solid var(--border-2);
@@ -368,6 +370,9 @@ a{color:inherit;text-decoration:none}
 .field input:focus,.field select:focus,.filters input:focus,.filters select:focus{outline:2px solid var(--brand-2);outline-offset:1px}
 .field input[type=checkbox]{width:20px;height:20px;accent-color:var(--brand)}
 .field .check{display:flex;align-items:center;gap:10px;font-weight:600}
+.field .checks{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px 16px}
+.field .checks legend{font-weight:600;margin-bottom:8px;padding:0}
+.field .checks .check{font-weight:500}
 .field .help{font-size:13px;color:var(--text-3)}
 .field .help ul{margin:4px 0 0;padding-left:18px}
 .field .err{font-size:13px;color:var(--bad);font-weight:600}
@@ -381,9 +386,153 @@ a{color:inherit;text-decoration:none}
 .login-card{width:100%;max-width:420px}
 .login-card .brand{color:var(--text);padding:0 0 20px}
 .login-card .brand small{color:var(--text-3)}
+.login-card .brand b{color:var(--text)}
 .empty-state{padding:32px 16px;text-align:center;color:var(--text-2)}
 .mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .mod{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface-2)}
 .mod b{display:block;margin-bottom:4px}
 .mod small{color:var(--text-3)}
 .btn.ghost{background:transparent}
+.tag.b-ok{background:var(--ok-bg);color:var(--ok)}
+.tag.b-warn{background:var(--warn-bg);color:var(--warn)}
+.tag.b-bad{background:var(--bad-bg);color:var(--bad)}
+.tag.b-mute{background:var(--mute-bg);color:var(--mute)}
+.form-wide{max-width:none}
+fieldset.grupo{border:1px solid var(--border);border-radius:12px;padding:16px;margin:0 0 4px}
+fieldset.grupo legend{font-weight:700;padding:0 6px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.form-grid .field.full{grid-column:1/-1}
+.tbl-form td{vertical-align:top}
+.tbl-form .field input,.tbl-form .field select{min-width:90px}
+.dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px 20px;margin:0}
+.dl div{min-width:0}
+.dl dt{font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+.dl dd{margin:2px 0 0;font-weight:500;overflow-wrap:anywhere}
+.stack{display:grid;gap:16px}
+.cols-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.status-row{display:flex;flex-wrap:wrap;gap:12px}
+.status-box{flex:1;min-width:200px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
+.status-box small{display:block;font-size:12px;color:var(--text-3);text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.status-box .sub{display:block;font-size:13px;color:var(--text-2);margin-top:4px}
+.errores{margin:0;padding-left:18px;color:var(--bad);font-size:13px}
+.etiqueta-qr{display:inline-grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;border:2px solid var(--text);border-radius:10px;padding:12px 16px;background:#fff;color:#0f1b2d;max-width:420px}
+.etiqueta-qr svg{width:120px;height:120px}
+.etiqueta-qr b{font-size:20px;display:block}
+.kpi-link{color:inherit;text-decoration:none}
+.histo{font-size:13px}
+details.versiones summary{cursor:pointer;font-weight:600}
+@media print{.no-print{display:none!important}}
+.seg-ctl a{display:inline-flex;align-items:center;height:30px;padding:0 13px;border-radius:8px;color:var(--text-2);font-size:12.5px;font-weight:600;text-decoration:none}
+.seg-ctl a.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(15,27,45,.16)}
+.tech details>summary::-webkit-details-marker{display:none}
+.tech details[open] .tech-act .i{transform:rotate(180deg)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.grid-2 .card-b .filters{margin-bottom:6px}
+.filters .check{display:flex;align-items:center;gap:8px;font-weight:600;min-height:40px}
+.card-h .filters{margin-bottom:0}
+.tbl span.cell-sub{display:block}
+/* Archivo de certificados */
+.cert-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+.cert-grid .stack{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1000px){.cert-grid{grid-template-columns:1fr}.cert-grid>.stack{order:-1}}
+.cert-archivo{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cert-archivo-h{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;background:var(--surface-2);font-size:13px}
+.cert-img{display:block;width:100%;height:auto}
+.cert-pdf{display:block;width:100%;height:70vh;border:0}
+@media print{.cert-grid{display:block}.cert-qr{border:0;box-shadow:none}}
+
+/* ---------- Consulta pública por QR ---------- */
+.pub-top{background:var(--nav-bg);padding:14px 16px}
+.pub-top .brand{padding:0}
+.pub-main{grid-template-columns:minmax(0,1fr);max-width:880px;margin:0 auto;padding:20px 16px 32px}
+.pub-head small{display:block;font-size:12px;color:var(--text-3);text-transform:uppercase;font-weight:600;letter-spacing:.03em}
+.pub-head h1{font-size:22px;line-height:1.25;margin:2px 0 4px;overflow-wrap:anywhere}
+.pub-head p{color:var(--text-2)}
+.pub-cert{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.pub-cert:hover{border-color:var(--brand-2)}
+.pub-cert small{display:block;font-size:12px;color:var(--text-3)}
+.pub-cert b{display:block}
+.pub-cert-r{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.pub-pie{font-size:12.5px;color:var(--text-3);text-align:center}
+.pub .tbl{min-width:0}
+.pub .tbl th,.pub .tbl td{padding-left:10px;padding-right:10px}
+.pub .tbl th:first-child,.pub .tbl td:first-child{padding-left:16px}
+.pub .tbl th:last-child,.pub .tbl td:last-child{padding-right:16px}
+/* En el teléfono el PDF no se ve dentro de la página: se abre con el botón. */
+@media (max-width:760px){.pub .cert-pdf{display:none}.pub .cert-archivo{border:0}.pub .cert-archivo-h{padding:0;background:none;align-items:center}}
+
+/* ---------- Ver u ocultar la contraseña ---------- */
+.pass-wrap{position:relative}
+.pass-wrap input{width:100%;padding-right:46px!important}
+.pass-ver{position:absolute;top:50%;right:4px;transform:translateY(-50%);width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:8px;background:none;color:var(--text-3)}
+.pass-ver:hover{color:var(--text);background:var(--surface-2)}
+
+/* Lectura del certificado con IA */
+.ia-caja{border-color:var(--brand-2);background:var(--brand-soft)}
+.ia-cab{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.ia-cab p{margin:4px 0 0;max-width:62ch}
+.ia-estado{margin-top:12px;padding:10px 14px;border-radius:10px;background:var(--surface);font-size:14px}
+.ia-estado ul{margin:8px 0 0;padding-left:20px}
+.ia-estado.bien{background:var(--ok-bg);color:var(--ok)}
+.ia-estado.mal{background:var(--bad-bg);color:var(--bad)}
+.ia-lleno{background:var(--info-bg)!important;border-color:var(--info)!important}
+
+/* Visor del certificado en la consulta por QR (solo ver, sin descargar) */
+.visor{position:relative;display:grid;gap:12px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.visor-hoja{display:block;width:100%;height:auto;min-height:200px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;pointer-events:none}
+.visor-velo{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:24px;background:var(--surface);color:var(--text-2);font-weight:600;border-radius:8px}
+.visor-oculto .visor-hoja{filter:blur(24px)}
+.visor-oculto .visor-velo{display:flex}
+@media print{.pub .pub-main{display:none}.pub::after{content:"Este certificado es solo para consulta en pantalla.";display:block;padding:40px;font:16px sans-serif}}
+
+/* ---------- Pantalla de ingreso ---------- */
+.ingreso-body{background:var(--surface)}
+.ingreso{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);min-height:100vh}
+.ingreso-hero{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:32px;padding:36px 48px;color:#cfe0f2;
+  background:radial-gradient(120% 90% at 0% 0%,#0f4c5c 0%,transparent 55%),radial-gradient(90% 80% at 100% 100%,#1e3a8a 0%,transparent 60%),#0b2239}
+.ingreso-rejilla{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:36px 36px;
+  -webkit-mask-image:radial-gradient(70% 60% at 50% 45%,#000,transparent);mask-image:radial-gradient(70% 60% at 50% 45%,#000,transparent)}
+.ingreso-hero>*{position:relative}
+.ingreso-hero .brand{padding:0}
+.ingreso-centro{max-width:460px}
+.ingreso-gauge{width:220px;height:auto;display:block;margin-bottom:28px;filter:drop-shadow(0 10px 30px rgba(20,184,166,.25))}
+.ingreso-gauge .arco{stroke-dasharray:100;stroke-dashoffset:100;animation:ing-arco 1.6s .2s cubic-bezier(.3,.7,.2,1) forwards}
+.ingreso-gauge .aguja{transform-origin:120px 128px;transform:rotate(-90deg);animation:ing-aguja 2.4s .2s cubic-bezier(.3,.7,.2,1) forwards,ing-vibra 4s 2.6s ease-in-out infinite}
+@keyframes ing-arco{to{stroke-dashoffset:0}}
+@keyframes ing-aguja{0%{transform:rotate(-90deg)}70%{transform:rotate(38deg)}100%{transform:rotate(20deg)}}
+@keyframes ing-vibra{0%,100%{transform:rotate(20deg)}50%{transform:rotate(26deg)}}
+.ingreso-hero h2{color:#fff;font-size:32px;line-height:1.15;letter-spacing:-.6px;margin-bottom:14px}
+.ingreso-hero p{font-size:15px;line-height:1.6;color:#a9bed6}
+.ingreso-puntos{display:grid;gap:12px;margin-top:26px}
+.ingreso-puntos li{display:flex;align-items:center;gap:12px;font-weight:600;color:#e2ecf7}
+.ingreso-puntos span{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:rgba(45,212,191,.12);color:#5eead4;border:1px solid rgba(45,212,191,.25)}
+.ingreso-pie{font-size:12.5px!important;color:#7f93ad!important}
+.ingreso-panel{display:grid;place-items:center;padding:40px 24px;background:var(--surface)}
+.ingreso-form{width:100%;max-width:380px;animation:ing-sube .6s .1s both ease-out}
+@keyframes ing-sube{from{opacity:0;transform:translateY(12px)}}
+.ingreso-form h1{font-size:28px;letter-spacing:-.4px}
+.ingreso-sub{margin:6px 0 26px;color:var(--text-3)}
+.ingreso-form .form{max-width:none}
+.ingreso-form input:not([type=checkbox]){height:46px}
+.ingreso-btn{width:100%;height:48px;margin-top:4px;font-size:15px}
+.ingreso-btn .i{transition:transform .15s}
+.ingreso-btn:hover .i{transform:translateX(3px)}
+.ingreso-ayuda{display:flex;gap:8px;align-items:flex-start;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);font-size:13px;color:var(--text-3)}
+.ingreso-ayuda .i{width:16px;height:16px;margin-top:2px}
+.ingreso-marca-movil{display:none;padding:0 0 28px}
+.ingreso-marca-movil b{color:var(--text)}
+.ingreso-marca-movil small{color:var(--text-3)}
+@media (max-width:900px){
+  .ingreso{grid-template-columns:1fr}
+  .ingreso-hero{display:none}
+  .ingreso-marca-movil{display:flex}
+  .ingreso-panel{align-items:start;padding-top:56px;background:linear-gradient(180deg,var(--brand-soft),var(--surface) 260px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .ingreso-gauge .arco,.ingreso-gauge .aguja,.ingreso-form{animation:none}
+  .ingreso-gauge .arco{stroke-dashoffset:0}
+  .ingreso-gauge .aguja{transform:rotate(20deg)}
+}
+.ingreso-form .msg{margin-bottom:16px}
+.card[hidden]{display:none}

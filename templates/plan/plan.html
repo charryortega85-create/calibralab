@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}{{ p }}{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'plan:indice' %}">Plan y presupuesto</a> /</div>
+<h1>Plan anual {{ p.ejercicio }}</h1><p>{{ p.descripcion }}</p></div>
+<div class="actions"><a class="btn" href="{% url 'reportes:ejecucion' %}?plan={{ p.pk }}&formato=xlsx">Exportar a Excel</a>
+{% if user.puede_editar %}<a class="btn" href="{% url 'plan:plan_editar' p.pk %}">Editar</a><a class="btn primary" href="{% url 'plan:item_crear' p.pk %}">{% icono "i-plus" %}Programar un lote</a>{% endif %}</div></div>
+<div class="stack">
+<div class="status-row">
+  <div class="status-box"><small>Avance del plan</small><b>{{ a.pct_plan }} %</b><div class="meter-bar"><i style="width:{{ a.pct_plan|stringformat:'s' }}%"></i></div><span class="sub">{{ a.ejecutados }} de {{ a.programados }} lotes ejecutados</span></div>
+  <div class="status-box"><small>Avance del presupuesto</small><b>{{ a.pct_presupuesto }} %</b><div class="meter-bar"><i style="width:{{ a.pct_presupuesto|stringformat:'s' }}%"></i></div><span class="sub">{{ a.pagado|guaranies }} pagado de {{ a.previsto|guaranies }} previsto</span></div>
+</div>
+<div class="card"><div class="table-wrap"><table class="tbl">
+<thead><tr><th>Mes previsto</th><th>Lote</th><th>Monto previsto</th><th>Proveedor</th><th>Nota de requerimiento</th><th>Ejecución</th><th>Pago</th><th></th></tr></thead>
+<tbody>{% for i in items %}<tr>
+  <td>{{ i.get_mes_previsto_display|capfirst }}</td>
+  <td><a class="code link" href="{{ i.lote.get_absolute_url }}">{{ i.lote.codigo }}</a><span class="cell-sub">{{ i.lote.nombre }}</span></td>
+  <td class="nw">{{ i.monto_previsto|guaranies }}</td><td>{{ i.proveedor|default:"—" }}</td><td class="mono">{{ i.nota_requerimiento|default:"—" }}</td>
+  <td><span class="tag {% if i.estado_ejecucion == 'ejecutado' %}b-ok{% elif i.estado_ejecucion == 'cancelado' %}b-mute{% else %}b-warn{% endif %}">{{ i.get_estado_ejecucion_display }}</span>{% if i.fecha_ejecucion %}<span class="cell-sub">{{ i.fecha_ejecucion|date:"Y-m-d" }}</span>{% endif %}</td>
+  <td><span class="tag {% if i.estado_pago == 'pagado' %}b-ok{% else %}b-warn{% endif %}">{{ i.get_estado_pago_display }}</span>{% if i.monto_pagado %}<span class="cell-sub">{{ i.monto_pagado|guaranies }}</span>{% endif %}</td>
+  <td class="nw">{% if user.puede_editar %}<a class="btn sm" href="{% url 'plan:ejecucion' i.pk %}">Ejecución</a> <a class="btn sm ghost" href="{% url 'plan:item_editar' p.pk i.pk %}">Editar</a>{% endif %}</td>
+</tr>{% empty %}<tr><td colspan="8" class="empty">El plan no tiene lotes programados.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+{% endblock %}

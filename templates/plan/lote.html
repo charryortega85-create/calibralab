@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}{{ l.codigo }}{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'plan:indice' %}">Plan y presupuesto</a> / Lotes</div>
+<h1>{{ l }}</h1><p>{{ l.trabajos }}</p></div>
+{% if user.puede_editar %}<div class="actions"><a class="btn" href="{% url 'plan:lote_editar' l.pk %}">Editar</a></div>{% endif %}</div>
+<div class="stack">
+<div class="status-row"><div class="status-box"><small>Proveedor previsto</small><b>{{ l.proveedor|default:"—" }}</b></div>
+<div class="status-box"><small>Costo estimado</small><b>{{ l.costo_estimado|guaranies }}</b></div>
+<div class="status-box"><small>Equipos</small><b>{{ equipos|length }}</b></div></div>
+<div class="card"><div class="card-h"><div><h2>Equipos del lote</h2></div></div><div class="table-wrap"><table class="tbl">
+<thead><tr><th>Código</th><th>Equipo</th><th>Responsable</th><th>Criticidad</th><th>Próxima calibración</th><th>Estado</th></tr></thead>
+<tbody>{% for e in equipos %}<tr><td><a class="code link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a></td><td>{{ e.descripcion }}</td><td>{{ e.responsable }}</td><td>{{ e.criticidad|criticidad }}</td><td>{{ e.proxima|date:"Y-m-d"|default:"—" }}</td><td>{{ e.estado_cal|estado_cal }}</td></tr>
+{% empty %}<tr><td colspan="6" class="empty">El lote no tiene equipos.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-h"><div><h2>En los planes anuales</h2></div></div><div class="card-b"><ul class="histo">
+{% for i in items %}<li><a class="link" href="{{ i.plan.get_absolute_url }}">{{ i.plan }}</a> · {{ i.get_mes_previsto_display }} · {{ i.monto_previsto|guaranies }} · {{ i.get_estado_ejecucion_display }} · pago {{ i.get_estado_pago_display|lower }}</li>
+{% empty %}<li class="cell-sub">Todavía no está en ningún plan.</li>{% endfor %}</ul></div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "publico/base.html" %}{% load calibra static %}
+{% block titulo %}Certificado {{ s.numero_certificado }}{% endblock %}
+{% block enlace_interno %}{% url 'servicios:certificado' s.pk %}{% endblock %}
+{% block contenido %}
+<div class="pub-head">
+  <small>Certificado de {{ s.get_tipo_display|lower }}</small>
+  <h1 class="mono">{{ s.numero_certificado }}</h1>
+  <p><a class="link" href="{% url 'core:qr_equipo' token_equipo %}">{{ s.equipo.codigo }} · {{ s.equipo.descripcion }}</a> · {{ s.proveedor }} · {{ s.fecha|date:"Y-m-d" }}</p>
+</div>
+
+<div class="status-row">
+  <div class="status-box"><small>{% if s.es_calibracion %}Dictamen{% else %}Resultado{% endif %}</small>{{ s|dictamen }}</div>
+  <div class="status-box"><small>{% if s.es_calibracion %}Próxima calibración{% else %}Vigente hasta{% endif %}</small>
+    <b>{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"Sin fecha nueva" }}{% else %}{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}{% endif %}</b></div>
+  <div class="status-box"><small>Este certificado</small>
+    {% if vigente %}<span class="badge b-ok">{% icono "i-check" %}Es el último del equipo</span>{% else %}<span class="badge b-mute">{% icono "i-history" %}Hay uno más reciente</span>{% endif %}</div>
+</div>
+
+<div class="card"><div class="card-h"><div><h2>Certificado</h2>
+  <p>{% if hojas %}Solo para consulta en pantalla: no se puede descargar ni imprimir.{% else %}Todavía no se adjuntó el certificado.{% endif %}</p></div></div>
+  {% if hojas %}<div class="card-b visor" id="visor">
+    {% for n, p in hojas %}<canvas class="visor-hoja" data-src="{% url 'core:qr_hoja' token n p %}" aria-label="Hoja {{ forloop.counter }} del certificado {{ s.numero_certificado }}" role="img"></canvas>{% endfor %}
+    <div class="visor-velo" aria-hidden="true">Vuelve a esta ventana para ver el certificado.</div>
+  </div>{% endif %}
+</div>
+<script src="{% static 'js/visor.js' %}"></script>
+{% endblock %}

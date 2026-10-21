@@ -1,0 +1,68 @@
+{% extends "base.html" %}{% load calibra %}
+{% block titulo %}Equipos{% endblock %}
+{% block contenido %}
+<div class="page-head">
+  <div><div class="crumbs">Inventario</div><h1>Equipos</h1><p>{{ total }} equipo{{ total|pluralize }} con estos filtros.</p></div>
+  <div class="actions">
+    <a class="btn" href="?{{ consulta }}&formato=xlsx">Exportar a Excel</a>
+    <a class="btn" href="?{{ consulta }}&formato=csv">CSV</a>
+    {% if user.puede_editar %}
+    <a class="btn" href="{% url 'equipos:importar' %}">Cargar desde archivo</a>
+    <a class="btn primary" href="{% url 'equipos:crear' %}">{% icono "i-plus" %}Nuevo equipo</a>{% endif %}
+  </div>
+</div>
+<form class="filters" method="get" role="search">
+  <div class="field"><label for="q">Buscar</label><input id="q" name="q" value="{{ f.q }}" placeholder="Código, descripción, serie o certificado"></div>
+  <div class="field"><label for="estado_cal">Estado de calibración</label><select id="estado_cal" name="estado_cal"><option value="">Todos</option>
+    {% for v, t in estados_cal %}<option value="{{ v }}"{% if f.estado_cal == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="estado">Estado actual</label><select id="estado" name="estado"><option value="">Todos menos de baja</option>
+    {% for v, t in estados %}<option value="{{ v }}"{% if f.estado == v %} selected{% endif %}>{{ t }}</option>{% endfor %}
+    <option value="todos"{% if f.estado == "todos" %} selected{% endif %}>Todos, incluidos de baja</option></select></div>
+  <div class="field"><label for="tipo">Tipo de instrumento</label><select id="tipo" name="tipo"><option value="">Todos</option>
+    {% for v, t in familias %}<optgroup label="{{ t }}"><option value="fam-{{ v }}"{% if f.tipo == "fam-"|add:v %} selected{% endif %}>Toda la familia</option>
+    {% for ti in tipos %}{% if ti.familia == v %}<option value="{{ ti.pk }}"{% if f.tipo == ti.pk|stringformat:"d" %} selected{% endif %}>{{ ti.nombre }}</option>{% endif %}{% endfor %}</optgroup>{% endfor %}</select></div>
+  <div class="field"><label for="criticidad">Criticidad</label><select id="criticidad" name="criticidad"><option value="">Todas</option>
+    {% for v, t in criticidades %}<option value="{{ v }}"{% if f.criticidad == v %} selected{% endif %}>{{ t }}</option>{% endfor %}
+    <option value="critico"{% if f.criticidad == "critico" %} selected{% endif %}>Solo equipos críticos</option></select></div>
+  <div class="field"><label for="marca">Marca</label><select id="marca" name="marca"><option value="">Todas</option>
+    {% for m in marcas %}<option value="{{ m.pk }}"{% if f.marca == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  {% if areas %}<div class="field"><label for="area">Laboratorio y área</label><select id="area" name="area"><option value="">Todos</option>
+    {% regroup areas by laboratorio as grupos %}{% for g in grupos %}<optgroup label="{{ g.grouper }}">
+      <option value="{{ g.grouper.filtro }}"{% if f.area == g.grouper.filtro %} selected{% endif %}>Todo {{ g.grouper }}</option>
+      {% for a in g.list %}<option value="{{ a.pk }}"{% if f.area == a.pk|stringformat:"d" %} selected{% endif %}>{{ a.nombre }}</option>{% endfor %}
+    </optgroup>{% endfor %}</select></div>{% endif %}
+  <div class="field"><label for="ubicacion">Ubicación</label><select id="ubicacion" name="ubicacion"><option value="">Todas</option>
+    {% for m in ubicaciones %}<option value="{{ m.pk }}"{% if f.ubicacion == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="responsable">Responsable</label><select id="responsable" name="responsable"><option value="">Todos</option>
+    {% for m in responsables %}<option value="{{ m.pk }}"{% if f.responsable == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="lote">Lote</label><select id="lote" name="lote"><option value="">Todos</option>
+    {% for m in lotes %}<option value="{{ m.pk }}"{% if f.lote == m.pk|stringformat:"d" %} selected{% endif %}>{{ m.codigo }}</option>{% endfor %}</select></div>
+  <button class="btn" type="submit">Filtrar</button>
+  <a class="btn ghost" href="{% url 'equipos:lista' %}">Limpiar</a>
+</form>
+<div class="card">
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Código</th><th class="col-eq">Equipo</th><th>Área y ubicación</th><th>Responsable</th><th>Criticidad</th><th>Próxima calibración</th><th>Estado de calibración</th></tr></thead>
+    <tbody>
+    {% for e in pagina %}
+      <tr>
+        <td><a class="code link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a></td>
+        <td><span class="cell-main">{{ e.descripcion }}{% if e.estado != "en_servicio" %}{{ e|estado_equipo }}{% endif %}</span><span class="cell-sub">{% if e.tipo %}{{ e.tipo.nombre }} · {% endif %}{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }}{% if e.critico %} · Crítico{% endif %}</span></td>
+        <td>{% if e.area %}<span class="cell-main">{{ e.area.nombre }}</span><span class="cell-sub">{{ e.area.laboratorio }} · {{ e.ubicacion }}</span>{% else %}{{ e.ubicacion }}{% endif %}</td>
+        <td>{{ e.responsable }}</td>
+        <td>{{ e.criticidad|criticidad }}</td>
+        <td class="nw">{% if e.proxima %}{{ e.proxima|date:"Y-m-d" }}{% else %}—{% endif %}</td>
+        <td>{{ e.estado_cal|estado_cal }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="empty">Ningún equipo coincide con los filtros. Prueba con otro código o quita algún filtro.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if pagina.has_other_pages %}<nav class="pager" aria-label="Páginas">
+    {% if pagina.has_previous %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}
+  </nav>{% endif %}
+</div>
+{% endblock %}

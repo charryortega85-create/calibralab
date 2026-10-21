@@ -1,21 +1,124 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load calibra %}
 {% block titulo %}Inicio{% endblock %}
 {% block contenido %}
-<div class="page-head"><div><div class="crumbs">Inicio / Panel de control</div><h1>Panel de control</h1>
-<p>{{ saludo }}, {{ user.get_short_name }}. Hoy es {{ hoy|date:"l j \d\e F \d\e Y" }}.</p></div></div>
+<div class="page-head">
+  <div><div class="crumbs">Inicio / Panel de control</div><h1>Panel de control</h1>
+  <p>{{ saludo }}, {{ user.get_short_name }}. Este es el estado de calibración del laboratorio al {{ hoy|date:"l j \d\e F \d\e Y" }}.</p></div>
+  {% if user.puede_editar %}<div class="actions">
+    <a class="btn" href="{% url 'equipos:crear' %}">{% icono "i-plus" %}Nuevo equipo</a>
+    <a class="btn primary" href="{% url 'servicios:crear' %}">{% icono "i-gauge" %}Registrar calibración</a>
+  </div>{% endif %}
+</div>
 
-<div class="card">
-  <div class="card-h"><div><h2>Sistema en construcción</h2>
-  <p>Los indicadores de calibración aparecerán aquí cuando estén listos los módulos de equipos, calibraciones y alertas.</p></div></div>
-  <div class="card-b">
-    <div class="mod-grid">
-      <div class="mod"><b>A · Acceso y usuarios</b><small>Listo: ingreso, roles, usuarios y configuración.</small></div>
-      <div class="mod"><b>H · Registro de cambios</b><small>Listo: cada alta, cambio e ingreso queda registrado.</small></div>
-      <div class="mod"><b>B · Inventario y ficha</b><small>Próximo paso.</small></div>
-      <div class="mod"><b>C · Servicios</b><small>Pendiente.</small></div>
-      <div class="mod"><b>D · Estado y alertas</b><small>Pendiente.</small></div>
-      <div class="mod"><b>E, F y G</b><small>Plan, mantenimiento y reportes: pendientes.</small></div>
+<section class="kpis" aria-label="Indicadores principales">
+  <a class="card kpi k-total kpi-link" href="{% url 'equipos:lista' %}">
+    <div class="kpi-label">Total de equipos</div>
+    <div class="kpi-row"><div class="kpi-val">{{ total }}</div><span class="kpi-ico">{% icono "i-box" %}</span></div>
+    <div class="kpi-sub">{{ en_servicio }} en servicio{% if en_reparacion %} · {{ en_reparacion }} en reparación{% endif %}{% if fuera_servicio %} · {{ fuera_servicio }} fuera de servicio{% endif %}{% if de_baja %} · {{ de_baja }} de baja (no cuentan){% endif %}</div>
+    <div class="kpi-bar" aria-hidden="true">{% for l in leyenda %}{% if l.n %}<i style="flex:{{ l.n }};background:{{ l.color }}"></i>{% endif %}{% endfor %}</div>
+  </a>
+  <a class="card kpi k-bad kpi-link" href="{% url 'equipos:lista' %}?estado_cal=vencido">
+    <div class="kpi-label">Equipos vencidos</div>
+    <div class="kpi-row"><div class="kpi-val">{{ cnt.vencido }}</div><span class="kpi-ico">{% icono "i-alert" %}</span></div>
+    <div class="kpi-sub">{% if cnt.vencido %}{{ pct_vencidos }} % del inventario · Requieren calibración{% else %}Ningún equipo con la calibración vencida{% endif %}</div>
+    <div class="kpi-bar" aria-hidden="true"><i style="width:{{ pct_vencidos|stringformat:'s'|cut:',' }}%;background:var(--bad-line)"></i></div>
+  </a>
+  <a class="card kpi k-warn kpi-link" href="{% url 'equipos:lista' %}?estado_cal=por_vencer">
+    <div class="kpi-label">Próximas calibraciones</div>
+    <div class="kpi-row"><div class="kpi-val">{{ cnt.por_vencer }}</div><span class="kpi-ico">{% icono "i-clock" %}</span></div>
+    <div class="kpi-sub">En los próximos {{ plazo }} días{% if proxima %} · Próxima: {{ proxima.equipo.codigo }}, {{ proxima.dias|relativo }}{% endif %}</div>
+    <div class="kpi-bar" aria-hidden="true"></div>
+  </a>
+  <a class="card kpi k-mail kpi-link" href="{% url 'alertas:avisos' %}">
+    <div class="kpi-label">Alertas por correo</div>
+    <div class="kpi-row"><div class="kpi-val">{{ avisos_30 }}</div><span class="kpi-ico">{% icono "i-mail" %}</span></div>
+    <div class="kpi-sub">{% if avisos_30 %}{{ avisos_ok }} enviado{{ avisos_ok|pluralize }} · {{ avisos_err }} con error · últimos 30 días{% else %}Ningún aviso en los últimos 30 días{% endif %}</div>
+    <div class="kpi-bar" aria-hidden="true">{% if avisos_30 %}<i style="flex:{{ avisos_ok }};background:var(--ok-line)"></i>{% if avisos_err %}<i style="flex:{{ avisos_err }};background:var(--bad-line)"></i>{% endif %}{% endif %}</div>
+  </a>
+</section>
+
+<div class="row r1">
+  <section class="card" aria-labelledby="h-tec">
+    <div class="card-h"><div><h2 id="h-tec">Alertas por correo por técnico</h2>
+      <p>Aviso automático al responsable de cada equipo cuando entra en el plazo de aviso y cuando vence.</p></div>
+      <a class="link" href="{% url 'alertas:avisos' %}">Ver todos los avisos{% icono "i-chevron" %}</a></div>
+    <div class="tech-wrap">
+      <div class="tech-cols" aria-hidden="true"><span>Técnico</span><span>Equipos en alerta</span><span>Último aviso por correo</span><span></span></div>
+      <ul class="tech-list">
+      {% for t in tecnicos %}
+        <li class="tech"><details>
+          <summary class="tech-main" style="list-style:none;cursor:{% if t.avisos %}pointer{% else %}default{% endif %}">
+            <div class="tech-who"><span class="avatar{% cycle '' ' av2' ' av3' ' av4' %}" aria-hidden="true">{{ t.u.iniciales }}</span><div><b>{{ t.u }}</b><small title="{{ t.u.email }}">{% icono "i-mail" %}<span>{{ t.u.email }}</span></small></div></div>
+            <div class="tech-chips">{% if t.vencidos or t.por_vencer %}{% if t.vencidos %}<span class="badge b-bad">{% icono "i-alert" %}{{ t.vencidos }} vencido{{ t.vencidos|pluralize }}</span>{% endif %}{% if t.por_vencer %}<span class="badge b-warn">{% icono "i-clock" %}{{ t.por_vencer }} por vencer</span>{% endif %}{% else %}<span class="badge b-ok">{% icono "i-check" %}Sin pendientes</span>{% endif %}</div>
+            <div class="tech-last"><span class="lbl">Último aviso</span>{% if t.ultimo %}
+              <div class="l1">{% if t.ultimo.tipo == "vencido" %}<span class="badge b-bad">{% icono "i-alert" %}Vencido</span>{% else %}<span class="badge b-warn">{% icono "i-clock" %}Por vencer</span>{% endif %}<b>{{ t.ultimo.equipo.codigo }}</b></div>
+              <div class="l2"><span class="num">{{ t.ultimo.enviado_en|date:"Y-m-d H:i" }}</span>{% if t.ultimo.resultado == "enviado" %}<span class="badge b-ok">{% icono "i-check" %}Enviado</span>{% else %}<a class="badge b-bad" href="{% url 'alertas:aviso' t.ultimo.pk %}">{% icono "i-x" %}Error · revisar</a>{% endif %}</div>
+              {% else %}<div class="l1">Todavía no recibió avisos</div>{% endif %}</div>
+            <div class="tech-act">{% if t.avisos %}<span class="icon-btn sm" aria-hidden="true">{% icono "i-down" %}</span>{% endif %}</div>
+          </summary>
+          {% if t.avisos %}<div class="tech-log"><div class="log-head">Últimos avisos enviados a <b>{{ t.u.email }}</b></div>
+            <table><thead><tr><th scope="col">Equipo</th><th scope="col">Tipo de aviso</th><th scope="col">Próxima fecha considerada</th><th scope="col">Fecha y hora de envío</th><th scope="col">Resultado del envío</th></tr></thead>
+            <tbody>{% for a in t.avisos %}<tr><td><b>{{ a.equipo.codigo }}</b> · {{ a.equipo.descripcion }}</td><td class="nw">{{ a.get_tipo_display }}</td><td class="num nw">{{ a.proxima_fecha|date:"Y-m-d" }}</td><td class="num nw">{{ a.enviado_en|date:"Y-m-d H:i" }}</td><td class="nw">{{ a.get_resultado_display }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+        </details></li>
+      {% empty %}<li class="empty-state">Todavía no hay equipos con responsable.</li>{% endfor %}
+      </ul>
     </div>
-  </div>
+    <div class="card-f"><span>{% icono "i-clock" %}Envío automático diario a las {{ conf.hora_envio|time:"H:i" }}</span><span>{% icono "i-bell" %}Plazo de aviso: {{ plazo }} días (lo configura el Administrador)</span><span>{% icono "i-mail" %}Próximo envío: {{ siguiente_envio|date:"Y-m-d H:i" }}</span></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-est">
+    <div class="card-h"><div><h2 id="h-est">Estado de calibración</h2><p>Todos los equipos activos del inventario, según la regla RN-03.</p></div></div>
+    <div class="card-b donut-b">
+      <div class="donut-wrap">
+        <div class="donut" role="img" aria-label="Estado de calibración de {{ total }} equipos: {% for l in leyenda %}{{ l.n }} {{ l.txt|lower }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+          <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="48"/>{% for s in segmentos %}<circle class="seg" cx="60" cy="60" r="48" stroke="{{ s.color }}" stroke-dasharray="{{ s.visible|stringformat:'s' }} {{ s.resto|stringformat:'s' }}" stroke-dashoffset="{{ s.offset|stringformat:'s' }}" style="--len:{{ s.visible|stringformat:'s' }}"/>{% endfor %}</svg>
+          <div class="donut-c"><b>{{ total }}</b><span>equipos</span></div>
+        </div>
+        <ul class="legend">{% for l in leyenda %}<li><a class="kpi-link" style="display:contents" href="{% url 'equipos:lista' %}?estado_cal={{ l.k }}"><span class="sw" style="background:{{ l.color }}"></span><span>{{ l.txt }}</span><span class="n">{{ l.n }}</span><span class="pc">{{ l.pct }} %</span></a></li>{% endfor %}</ul>
+      </div>
+      <div class="meter"><div class="meter-top"><span>Con calibración válida (vigente + por vencer)</span><b class="num">{{ validos }} de {{ total }} · {{ pct_validos }} %</b></div>
+        <div class="meter-bar" role="img" aria-label="{{ pct_validos }} % de los equipos tienen calibración válida"><i style="width:{{ pct_validos|stringformat:'s' }}%"></i></div></div>
+    </div>
+  </section>
+</div>
+
+<section class="card" id="ultimas" aria-labelledby="h-ult" style="margin-bottom:20px">
+  <div class="card-h"><div><h2 id="h-ult">Últimos servicios registrados</h2><p>Los 8 más recientes{% if filtro != "todos" %} con este filtro{% endif %}.</p></div>
+    <div class="tools">
+      <div class="seg-ctl" role="group" aria-label="Filtrar por resultado">
+        <a class="{% if filtro == 'todos' %}on{% endif %}" href="?servicios=todos#ultimas">Todos</a>
+        <a class="{% if filtro == 'conformes' %}on{% endif %}" href="?servicios=conformes#ultimas">Conformes</a>
+        <a class="{% if filtro == 'no_conformes' %}on{% endif %}" href="?servicios=no_conformes#ultimas">No conformes</a>
+      </div>
+      <a class="btn sm" href="{% url 'servicios:lista' %}">{% icono "i-gauge" %}Ver todos</a>
+    </div></div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Código</th><th class="col-eq">Equipo</th><th class="col-ubic">Ubicación</th><th>Fecha de ejecución</th><th>Resultado y servicio</th><th>Certificado y proveedor</th><th>Próxima calibración</th><th>Estado de calibración</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>{% for s in ultimos %}<tr>
+      <td><span class="code">{{ s.equipo.codigo }}</span></td>
+      <td><div class="cell-main">{{ s.equipo.descripcion }}{% if s.equipo.estado != "en_servicio" %}{{ s.equipo|estado_equipo }}{% endif %}</div><div class="cell-sub">{{ s.equipo.marca }} · {{ s.equipo.modelo }}</div></td>
+      <td class="col-ubic">{{ s.equipo.ubicacion }}</td>
+      <td><div class="cell-main num">{{ s.fecha|date:"Y-m-d" }}</div><div class="cell-sub">{{ s.dias_desde|relativo }}</div></td>
+      <td>{{ s|dictamen }}<div class="cell-sub">{{ s.get_tipo_display }}</div></td>
+      <td><a class="mono link" href="{{ s.get_absolute_url }}">{{ s.numero_certificado }}</a><div class="cell-sub">{{ s.proveedor }}</div></td>
+      <td>{% if s.es_calibracion %}{% if s.proxima_fecha %}<div class="cell-main num">{{ s.proxima_fecha|date:"Y-m-d" }}</div>{% else %}<div class="cell-main">—</div><div class="cell-sub">Sin fecha nueva</div>{% endif %}{% else %}<div class="cell-sub">Vigente hasta {{ s.vigencia_hasta|date:"Y-m-d" }}</div>{% endif %}</td>
+      <td>{% if s.eq_estado %}{{ s.eq_estado.estado_cal|estado_cal }}{% else %}<span class="tag">De baja</span>{% endif %}</td>
+      <td><a class="icon-btn sm" href="{{ s.equipo.get_absolute_url }}" aria-label="Ver la ficha de {{ s.equipo.codigo }}" title="Ver ficha">{% icono "i-eye" %}</a></td>
+    </tr>{% empty %}<tr><td class="empty" colspan="9">Todavía no hay servicios registrados{% if filtro != "todos" %} con este resultado{% endif %}.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<div class="row r3">
+  <section class="card" id="prioridad" aria-labelledby="h-pri">
+    <div class="card-h"><div><h2 id="h-pri">Atención prioritaria</h2><p>Equipos vencidos y por vencer, ordenados por urgencia y criticidad.</p></div>
+      <a class="link" href="{% url 'alertas:estado' %}">Ver todos{% icono "i-chevron" %}</a></div>
+    {% include "alertas/_prioridad.html" with lista=prioridad %}
+    <div class="card-f"><span>Mostrando {{ prioridad|length }} de {{ n_prioridad }} equipos</span><span>Orden: vencidos primero; después criticidad (alta a baja) y días</span></div>
+  </section>
+  <section class="card" aria-labelledby="h-mes">
+    <div class="card-h"><div><h2 id="h-mes">Vencimientos de los próximos meses</h2><p>Cantidad de equipos cuya próxima calibración cae en cada mes.</p></div></div>
+    <div class="bars">{% for c in barras %}<div class="bar" title="{{ c.titulo|default:'' }}"><span class="bar-v">{{ c.n }}</span><div class="bar-area"><div class="bar-col{% if c.mal %} bad{% endif %}{% if not c.n %} zero{% endif %}" style="--h:{{ c.alto }}%"></div></div><span class="bar-m">{{ c.etiqueta }}</span></div>{% endfor %}</div>
+    <div class="card-f"><span>{{ dentro_6 }} equipo{{ dentro_6|pluralize }} vence{{ dentro_6|pluralize:"n" }} en los próximos 6 meses</span><span>{{ mas_adelante }} más adelante</span></div>
+  </section>
 </div>
 {% endblock %}
