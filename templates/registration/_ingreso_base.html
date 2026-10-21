@@ -1,0 +1,51 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+{% include "_head.html" %}
+<title>{% block titulo %}{% endblock %} · CalibraLab</title>
+</head>
+<body class="ingreso-body">
+{% include "_iconos.html" %}
+<main class="ingreso">
+  <section class="ingreso-hero" aria-hidden="true">
+    <div class="ingreso-rejilla"></div>
+    <div class="brand">
+      <span class="brand-mark"><svg class="i"><use href="#i-gauge"/></svg></span>
+      <span><b>CalibraLab</b><small>Gestión de calibraciones</small></span>
+    </div>
+    <div class="ingreso-centro">
+      <svg class="ingreso-gauge" viewBox="0 0 240 150">
+        <defs><linearGradient id="arco" x1="0" x2="1"><stop offset="0" stop-color="#22c55e"/><stop offset=".6" stop-color="#14b8a6"/><stop offset=".82" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/></linearGradient></defs>
+        <path d="M30 128a90 90 0 0 1 180 0" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="16" stroke-linecap="round"/>
+        <path class="arco" d="M30 128a90 90 0 0 1 180 0" fill="none" stroke="url(#arco)" stroke-width="16" stroke-linecap="round" pathLength="100"/>
+        <g class="marcas" stroke="rgba(255,255,255,.35)" stroke-width="2">
+          <line x1="120" y1="22" x2="120" y2="32"/><line x1="45" y1="53" x2="52" y2="60"/><line x1="195" y1="53" x2="188" y2="60"/>
+          <line x1="16" y1="128" x2="26" y2="128"/><line x1="224" y1="128" x2="214" y2="128"/>
+        </g>
+        <g class="aguja"><line x1="120" y1="128" x2="120" y2="52" stroke="#fff" stroke-width="4" stroke-linecap="round"/></g>
+        <circle cx="120" cy="128" r="9" fill="#fff"/><circle cx="120" cy="128" r="4" fill="#0f766e"/>
+      </svg>
+      <h2>Cada equipo calibrado,<br>cada certificado a mano.</h2>
+      <p>Planifica las calibraciones, recibe avisos antes del vencimiento y consulta la historia de cada equipo con un código QR.</p>
+      <ul class="ingreso-puntos">
+        <li><span><svg class="i"><use href="#i-bell"/></svg></span>Alertas de vencimiento</li>
+        <li><span><svg class="i"><use href="#i-file"/></svg></span>Certificados con trazabilidad</li>
+        <li><span><svg class="i"><use href="#i-qr"/></svg></span>Consulta por QR</li>
+      </ul>
+    </div>
+    <p class="ingreso-pie">Sistema en desarrollo · datos de ejemplo</p>
+  </section>
+
+  <section class="ingreso-panel">
+    <div class="ingreso-form">
+      <div class="brand ingreso-marca-movil">
+        <span class="brand-mark"><svg class="i" aria-hidden="true"><use href="#i-gauge"/></svg></span>
+        <span><b>CalibraLab</b><small>Gestión de calibraciones</small></span>
+      </div>
+      {% block panel %}{% endblock %}
+    </div>
+  </section>
+</main>
+<script src="{% static 'js/calibralab.js' %}"></script>
+</body>
+</html>

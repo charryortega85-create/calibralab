@@ -1,0 +1,16 @@
+{% extends "registration/_ingreso_base.html" %}
+{% block titulo %}Contraseña nueva{% endblock %}
+{% block panel %}
+      {% if validlink %}
+      <h1>Crea tu contraseña nueva</h1>
+      <p class="ingreso-sub">Al menos 10 caracteres. Después ingresas con ella.</p>
+      <form method="post" class="form" novalidate>
+        {% include "_form.html" %}
+        <button class="btn primary ingreso-btn" type="submit">Guardar la contraseña</button>
+      </form>
+      {% else %}
+      <h1>El enlace ya no sirve</h1>
+      <p class="ingreso-sub">Venció o ya se usó. Pide uno nuevo y usa el último correo que recibas.</p>
+      <a class="btn primary ingreso-btn" href="{% url 'cuentas:olvide' %}">Pedir otro enlace</a>
+      {% endif %}
+{% endblock %}

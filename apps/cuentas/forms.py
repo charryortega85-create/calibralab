@@ -113,6 +113,12 @@ class RestablecerContrasenaForm(SetPasswordForm):
     pass
 
 
+class OlvideForm(forms.Form):
+    dato = forms.CharField(label="Usuario o correo", max_length=254,
+                           widget=forms.TextInput(attrs={"autofocus": True, "autocomplete": "username",
+                                                         "placeholder": "mperez o mperez@lab.example"}))
+
+
 class ConfiguracionForm(forms.ModelForm):
     class Meta:
         model = Configuracion

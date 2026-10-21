@@ -534,3 +534,4 @@ details.versiones summary{cursor:pointer;font-weight:600}
   .ingreso-gauge .arco{stroke-dashoffset:0}
   .ingreso-gauge .aguja{transform:rotate(20deg)}
 }
+.ingreso-form .msg{margin-bottom:16px}

@@ -1,0 +1,14 @@
+{% autoescape off %}Hola, {{ usuario.get_short_name }}:
+
+{% if por_admin %}El administrador de CalibraLab te envió un enlace para que crees tu contraseña.{% else %}Recibimos un pedido para restablecer la contraseña de tu usuario «{{ usuario.username }}».{% endif %}
+Ábrelo para elegir una contraseña nueva:
+
+{{ url }}
+
+Tu contraseña nueva debe cumplir estas reglas:
+{% for r in reglas %}- {{ r }}
+{% endfor %}
+El enlace sirve una sola vez y vence en {{ horas }} horas.
+Si no lo pediste, ignora este correo: tu contraseña actual sigue igual.
+
+CalibraLab · Gestión de calibraciones{% endautoescape %}

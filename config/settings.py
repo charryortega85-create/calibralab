@@ -100,6 +100,8 @@ AUTH_USER_MODEL = "cuentas.Usuario"
 LOGIN_URL = "cuentas:login"
 LOGIN_REDIRECT_URL = "core:inicio"
 LOGOUT_REDIRECT_URL = "cuentas:login"
+# RF-04: el enlace para recuperar la contraseña vence a las 24 horas (y sirve una sola vez).
+PASSWORD_RESET_TIMEOUT = int(env("RECUPERAR_HORAS", "24")) * 3600
 
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
