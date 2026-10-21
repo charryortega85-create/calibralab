@@ -61,6 +61,7 @@ python manage.py enviar_avisos
 ```
 
 Por ejemplo, con cron a las 08:00: `0 8 * * * cd /app && python manage.py enviar_avisos`.
+En Windows, `servidor.py` los envía solo cada día a la hora de *Configuración*, sin otra tarea.
 El servidor de correo se configura con las variables `EMAIL_*` del archivo `.env`; sin ellas, los
 correos se muestran en la consola. El Administrador también puede enviarlos desde *Estado y alertas → Avisos por correo*.
 
