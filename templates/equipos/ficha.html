@@ -22,7 +22,7 @@
     <div class="status-box"><small>Estado de calibración</small>{{ e.estado_cal|estado_cal }}
       <span class="sub">{% if e.proxima %}Próxima: {{ e.proxima|date:"Y-m-d" }} ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin calibración conforme{% endif %}</span></div>
     <div class="status-box"><small>Aptitud (última calibración)</small>{% if ultima_cal %}{{ ultima_cal|dictamen }}<span class="sub">{{ ultima_cal.fecha|date:"Y-m-d" }} · <a class="link" href="{% url 'servicios:certificado' ultima_cal.pk %}">{{ ultima_cal.numero_certificado }}</a></span>{% else %}<span class="badge b-mute">Sin calibraciones</span>{% endif %}</div>
-    <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}<span class="sub">Criticidad: {{ e.criticidad|criticidad }}</span></div>
+    <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}<span class="sub">Criticidad: {{ e.criticidad|criticidad }}{% if e.critico %} · <b>Equipo crítico</b>{% endif %}</span></div>
     {% for v in vigencias %}
     <div class="status-box"><small>{{ v.get_tipo_display }}</small>{{ v|dictamen }}<span class="sub">Vigente hasta {{ v.vigencia_hasta|date:"Y-m-d" }}{% if v.vigencia_hasta < hoy %} (vencida){% endif %}</span></div>
     {% endfor %}
@@ -43,6 +43,8 @@
       {% if lotes %}<div><dt>Lotes</dt><dd>{% for l in lotes %}<a class="link" href="{{ l.get_absolute_url }}">{{ l.codigo }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
     </dl></div></div>
     <div class="card"><div class="card-h"><div><h2>Ficha técnica</h2></div></div><div class="card-b"><dl class="dl">
+      <div><dt>Tipo de instrumento</dt><dd>{% if e.tipo %}{{ e.tipo }} <span class="cell-sub">{{ e.tipo.get_familia_display }}</span>{% else %}—{% endif %}</dd></div>
+      {% for etiqueta, valor in e.datos_tecnicos %}<div><dt>{{ etiqueta }}</dt><dd>{{ valor }}</dd></div>{% endfor %}
       <div><dt>Unidad</dt><dd>{{ e.unidad }}</dd></div>
       <div><dt>Rango</dt><dd>{{ e.rango_min|num }} a {{ e.rango_max|num }} {{ e.unidad }}</dd></div>
       <div><dt>Resolución</dt><dd>{{ e.resolucion|num }}</dd></div>

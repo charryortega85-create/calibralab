@@ -57,4 +57,24 @@
     rol.addEventListener('change', mostrar);
     mostrar();
   }
+
+  // Ficha del equipo: según el tipo de instrumento se muestran solo los datos de su familia.
+  var tipoEq = document.querySelector('select[name="tipo"][data-familias]');
+  if (tipoEq) {
+    var mapa = JSON.parse(tipoEq.dataset.familias || '{}');
+    var datosTipo = Array.prototype.slice.call(document.querySelectorAll('[data-familia]'));
+    var aplicarTipo = function () {
+      var fam = mapa[tipoEq.value] || 'otro';
+      var cajas = [];
+      datosTipo.forEach(function (input) {
+        var campo = input.closest('.field');
+        campo.hidden = input.dataset.familia !== fam;
+        var caja = campo.closest('.card');
+        if (cajas.indexOf(caja) < 0) cajas.push(caja);
+      });
+      cajas.forEach(function (caja) { caja.hidden = !caja.querySelector('.field:not([hidden]) [data-familia]'); });
+    };
+    tipoEq.addEventListener('change', aplicarTipo);
+    aplicarTipo();
+  }
 })();

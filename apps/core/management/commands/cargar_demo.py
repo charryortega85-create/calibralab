@@ -165,7 +165,7 @@ class Command(BaseCommand):
         }
         for nombre, (ruc, acred) in proveedores.items():
             Proveedor.objects.get_or_create(nombre=nombre, defaults={
-                "ruc": ruc, "acreditacion": acred, "correo": f"{nombre[-1].lower()}@proveedor.example"})
+                "ruc": ruc, "acreditacion": acred, "reconocimiento": "ona", "correo": f"{nombre[-1].lower()}@proveedor.example"})
         equipos = {fila[0]: self.equipo(fila) for fila in DATOS}
         for usuario, areas in AREAS_DE_USUARIOS.items():
             Usuario.objects.get(username=usuario).areas.set([area(*a) for a in areas])

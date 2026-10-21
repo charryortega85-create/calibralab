@@ -19,6 +19,9 @@ LIMITE = Decimal("0.8")         # no dejar que el equipo llegue a más del 80 % 
 HOLGADO = Decimal("0.5")        # por debajo del 50 % y sin deriva se puede alargar
 ALARGAR, ACORTAR, REDUCIR = Decimal("1.5"), Decimal("0.75"), Decimal("0.5")
 HISTORIAL = 5                   # calibraciones aptas que se miran como máximo
+# ONA POL003: para alargar el intervalo hacen falta al menos 3 calibraciones aptas seguidas,
+# separadas por un año o más (se toleran unos días de diferencia con el aniversario).
+PARA_ALARGAR, SEPARACION_DIAS = 3, 350
 
 ACORTAR_TXT, ALARGAR_TXT, MANTENER, SIN_DATOS = "acortar", "alargar", "mantener", "sin_datos"
 
@@ -67,6 +70,12 @@ def _acotar(meses, actual):
     return max(bajo, min(alto, int(meses)))
 
 
+def _historial_para_alargar(seguidas):
+    ultimas = seguidas[-PARA_ALARGAR:]
+    return len(ultimas) == PARA_ALARGAR and all(
+        (b.fecha - a.fecha).days >= SEPARACION_DIAS for a, b in zip(ultimas, ultimas[1:]))
+
+
 def sugerir(calibraciones, actual):
     """`calibraciones` en orden de fecha, de la más antigua a la más reciente."""
     if not calibraciones:
@@ -102,6 +111,11 @@ def sugerir(calibraciones, actual):
         meses = min(actual, _acotar(hasta_limite, actual))  # con deriva nunca se alarga
         motivo = (f"Usa el {round(uso * 100)} % de la tolerancia y sube unos {round(deriva * 100)} puntos por año: "
                   f"llegaría al 80 % en unos {int(hasta_limite)} meses.")
+    elif uso < HOLGADO and not _historial_para_alargar(seguidas):
+        meses = actual
+        motivo = (f"Usa solo el {round(uso * 100)} % de la tolerancia y no muestra deriva, pero para alargar el "
+                  f"intervalo el ONA pide al menos {PARA_ALARGAR} calibraciones aptas seguidas, con un año o más "
+                  "entre ellas.")
     elif uso < HOLGADO:
         meses = _acotar(actual * ALARGAR, actual)
         motivo = f"Usa solo el {round(uso * 100)} % de la tolerancia y no muestra deriva: el intervalo se puede alargar."

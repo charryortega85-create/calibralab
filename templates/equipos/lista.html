@@ -18,8 +18,12 @@
   <div class="field"><label for="estado">Estado actual</label><select id="estado" name="estado"><option value="">Todos menos de baja</option>
     {% for v, t in estados %}<option value="{{ v }}"{% if f.estado == v %} selected{% endif %}>{{ t }}</option>{% endfor %}
     <option value="todos"{% if f.estado == "todos" %} selected{% endif %}>Todos, incluidos de baja</option></select></div>
+  <div class="field"><label for="tipo">Tipo de instrumento</label><select id="tipo" name="tipo"><option value="">Todos</option>
+    {% for v, t in familias %}<optgroup label="{{ t }}"><option value="fam-{{ v }}"{% if f.tipo == "fam-"|add:v %} selected{% endif %}>Toda la familia</option>
+    {% for ti in tipos %}{% if ti.familia == v %}<option value="{{ ti.pk }}"{% if f.tipo == ti.pk|stringformat:"d" %} selected{% endif %}>{{ ti.nombre }}</option>{% endif %}{% endfor %}</optgroup>{% endfor %}</select></div>
   <div class="field"><label for="criticidad">Criticidad</label><select id="criticidad" name="criticidad"><option value="">Todas</option>
-    {% for v, t in criticidades %}<option value="{{ v }}"{% if f.criticidad == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    {% for v, t in criticidades %}<option value="{{ v }}"{% if f.criticidad == v %} selected{% endif %}>{{ t }}</option>{% endfor %}
+    <option value="critico"{% if f.criticidad == "critico" %} selected{% endif %}>Solo equipos críticos</option></select></div>
   <div class="field"><label for="marca">Marca</label><select id="marca" name="marca"><option value="">Todas</option>
     {% for m in marcas %}<option value="{{ m.pk }}"{% if f.marca == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
   {% if areas %}<div class="field"><label for="area">Laboratorio y área</label><select id="area" name="area"><option value="">Todos</option>
@@ -43,7 +47,7 @@
     {% for e in pagina %}
       <tr>
         <td><a class="code link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a></td>
-        <td><span class="cell-main">{{ e.descripcion }}{% if e.estado != "en_servicio" %}{{ e|estado_equipo }}{% endif %}</span><span class="cell-sub">{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }}</span></td>
+        <td><span class="cell-main">{{ e.descripcion }}{% if e.estado != "en_servicio" %}{{ e|estado_equipo }}{% endif %}</span><span class="cell-sub">{% if e.tipo %}{{ e.tipo.nombre }} · {% endif %}{{ e.marca }} · {{ e.modelo }} · S/N {{ e.numero_serie }}{% if e.critico %} · Crítico{% endif %}</span></td>
         <td>{% if e.area %}<span class="cell-main">{{ e.area.nombre }}</span><span class="cell-sub">{{ e.area.laboratorio }} · {{ e.ubicacion }}</span>{% else %}{{ e.ubicacion }}{% endif %}</td>
         <td>{{ e.responsable }}</td>
         <td>{{ e.criticidad|criticidad }}</td>

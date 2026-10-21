@@ -8,14 +8,16 @@ from django.urls import reverse
 
 from apps.cuentas.permisos import SOLO_ADMIN, rol_requerido
 
-from .models import Marca, Proveedor, Ubicacion, Unidad
+from .models import Marca, Proveedor, TipoInstrumento, Ubicacion, Unidad
 
 # Los laboratorios y sus áreas tienen su propia página (ver laboratorios.py).
 LISTAS = {
     "marcas": (Marca, ["nombre", "activo"]),
     "ubicaciones": (Ubicacion, ["nombre", "activo"]),
     "unidades": (Unidad, ["simbolo", "nombre", "magnitud", "activo"]),
-    "proveedores": (Proveedor, ["nombre", "ruc", "contacto", "correo", "telefono", "acreditacion", "activo"]),
+    "proveedores": (Proveedor, ["nombre", "ruc", "contacto", "correo", "telefono", "reconocimiento", "acreditacion",
+                                "acreditacion_vence", "activo"]),
+    "tipos-de-instrumento": (TipoInstrumento, ["familia", "nombre", "activo"]),
 }
 
 

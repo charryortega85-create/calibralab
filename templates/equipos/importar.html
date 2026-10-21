@@ -3,7 +3,7 @@
 {% block contenido %}
 <div class="page-head"><div><div class="crumbs"><a class="link" href="{% url 'equipos:lista' %}">Equipos</a> /</div>
 <h1>Cargar equipos desde un archivo</h1>
-<p>Descarga la <a class="link" href="{% url 'equipos:plantilla' %}">plantilla de Excel</a>, complétala y súbela. {% if form.crear_faltantes %}Los responsables deben existir como usuarios; lo demás que falte se puede agregar al cargar.{% else %}Las marcas, laboratorios, áreas, ubicaciones, unidades y responsables deben existir en las listas.{% endif %}</p></div></div>
+<p>Descarga la <a class="link" href="{% url 'equipos:plantilla' %}">plantilla de Excel</a>, complétala y súbela. Trae una hoja por familia (balanzas, térmicos, cabinas, lectores y pipetas) con sus datos técnicos; los demás equipos van en la hoja «equipos». {% if form.crear_faltantes %}Los responsables deben existir como usuarios; lo demás que falte se puede agregar al cargar.{% else %}Las marcas, laboratorios, áreas, ubicaciones, unidades y responsables deben existir en las listas.{% endif %}</p></div></div>
 <div class="card"><div class="card-b">
   <form method="post" class="form" enctype="multipart/form-data" novalidate>
     {% include "_form.html" %}
@@ -15,8 +15,8 @@
   <div class="card-h"><div><h2>Revisión: {{ filas|length }} fila{{ filas|pluralize }}</h2>
   <p>{% if con_errores %}{{ con_errores }} fila{{ con_errores|pluralize }} con errores. Corrige el archivo y vuelve a subirlo: no se guarda nada hasta que no haya ningún error.{% if form.crear_faltantes %} Si falta algo en las listas, marca «Agregar lo que no exista» y vuelve a revisar.{% else %} Si falta algo en las listas, pide al administrador que lo agregue.{% endif %}{% else %}Sin errores. Confirma para guardar todos los equipos juntos.{% endif %}</p></div>
   {% if not con_errores %}<form method="post">{% csrf_token %}<button class="btn primary" name="confirmar" value="1">Guardar {{ filas|length }} equipos</button></form>{% endif %}</div>
-  <div class="table-wrap"><table class="tbl"><thead><tr><th>Fila</th><th>Código</th><th>Resultado</th></tr></thead><tbody>
-  {% for f in filas %}<tr><td>{{ f.numero }}</td><td class="mono">{{ f.codigo }}</td>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Hoja y fila</th><th>Código</th><th>Resultado</th></tr></thead><tbody>
+  {% for f in filas %}<tr><td>{{ f.lugar }}</td><td class="mono">{{ f.codigo }}</td>
     <td>{% if f.errores %}<ul class="errores">{% for e in f.errores %}<li>{{ e }}</li>{% endfor %}</ul>{% else %}<span class="badge b-ok">Correcta</span>{% for a in f.avisos %}<div class="cell-sub">{{ a }}</div>{% endfor %}{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>
 </div>

@@ -47,13 +47,21 @@ def test_una_sola_calibracion_mantiene():
 
 def test_nunca_baja_de_3_ni_pasa_de_36_meses():
     assert sugerir([cal(2025, "2", apta=False)], 4).meses == 3
-    assert sugerir([cal(2023, "0.1"), cal(2025, "0.1")], 30).meses == 36
+    assert sugerir([cal(2023, "0.1"), cal(2024, "0.1"), cal(2025, "0.1")], 30).meses == 36
+
+
+def test_ona_alargar_pide_tres_calibraciones_separadas_por_un_anio():
+    s = sugerir([cal(2024, "0.20"), cal(2025, "0.20")], 12)
+    assert (s.cambio, s.meses) == ("mantener", 12) and "ONA" in s.motivo
+    seguidas = [Calibracion(date(2025, m, 1), True, D("0.2")) for m in (1, 5, 9)]
+    assert sugerir(seguidas, 3).cambio == "mantener"
 
 
 def test_con_datos_guardados_y_en_la_ficha(cliente_de, tecnico, crear_equipo, calibrar):
     e = crear_equipo()  # EMP ±0,5 en cada punto
     calibrar(e, date(2024, 3, 1), errores=("0.05", "0.05", "0.05"), numero="CC-1")
     calibrar(e, date(2025, 3, 1), errores=("0.05", "-0.05", "0.05"), numero="CC-2")
+    calibrar(e, date(2026, 3, 2), errores=("0.05", "0.05", "-0.05"), numero="CC-3")
     s = sugerencia_para(e)
     assert s.uso_pct == 10 and (s.cambio, s.meses) == ("alargar", 18)
     html = cliente_de(tecnico).get(e.get_absolute_url()).content.decode()

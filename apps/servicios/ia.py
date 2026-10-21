@@ -29,7 +29,7 @@ _texto = {"type": "string"}
 ESQUEMA = {
     "type": "object",
     "properties": {
-        "tipo": {"type": "string", "enum": ["calibracion", "calificacion", "certificacion"]},
+        "tipo": {"type": "string", "enum": ["calibracion", "calificacion", "certificacion", "verificacion"]},
         "fecha": _texto, "numero_certificado": _texto, "proveedor": _texto, "lugar": _texto,
         "temperatura_ambiente": _texto, "humedad_relativa": _texto, "procedimiento": _texto,
         "realizado_por": _texto, "autorizado_por": _texto, "trazabilidad": _texto,
@@ -63,7 +63,7 @@ Puntos de calibración de la ficha del equipo: {puntos}
 
 Reglas:
 - Copia solo lo que está escrito en el certificado. Si un dato no figura, deja el texto vacío. No inventes ni completes valores.
-- tipo: «calibracion», «calificacion» o «certificacion», según el servicio que describe el certificado.
+- tipo: «calibracion», «calificacion», «certificacion» o «verificacion» (verificación intermedia), según el servicio que describe el certificado.
 - fecha: la fecha de ejecución del servicio (no la de emisión), en formato AAAA-MM-DD.
 - proveedor: el nombre del laboratorio que emitió el certificado.
 - Números: con punto decimal y sin separador de miles (por ejemplo 1000.25). Temperatura en °C y humedad en %.

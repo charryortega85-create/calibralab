@@ -19,9 +19,13 @@
       <span class="sub">{% if s.justificacion_proxima %}Cambiada a mano (calculada: {{ s.proxima_fecha_calculada|date:"Y-m-d" }}). Motivo: {{ s.justificacion_proxima }}{% elif s.proxima_fecha %}Fecha de ejecución + {{ s.equipo.intervalo_meses }} meses (RN-02){% else %}Un no apto no da fecha nueva{% endif %}</span></div>
     <div class="status-box"><small>Regla de comparación</small><b>{{ s.get_regla_display }}</b></div>
     {% else %}
-    <div class="status-box"><small>Vigente hasta</small><b>{{ s.vigencia_hasta|date:"Y-m-d" }}</b></div>
+    <div class="status-box"><small>Vigente hasta</small><b>{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}</b></div>
     {% endif %}
   </div>
+  {% with sin_u=s.puntos_sin_incertidumbre motivos=s.motivos_justificacion %}
+  {% if sin_u %}<div class="msg warning" role="status">{{ sin_u }} punto{{ sin_u|pluralize }} sin incertidumbre (U). El ONA pide que el certificado informe la incertidumbre de cada resultado: revisa el certificado{% if user.puede_editar %} y <a class="link" href="{% url 'servicios:corregir' s.pk %}">complétala</a>{% endif %}.</div>{% endif %}
+  {% if motivos and not s.justificacion_trazabilidad %}<div class="msg warning" role="status">Falta justificar la trazabilidad: {{ motivos|join:" y " }} (ONA POL003).</div>{% endif %}
+  {% endwith %}
 
   {% if s.resultado == "no_conforme" and s.es_calibracion %}
   <div class="card"><div class="card-h"><div><h2>Equipo no apto (RN-05)</h2>

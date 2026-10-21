@@ -56,6 +56,13 @@ class Equipo(ModeloVersionado):
                                    verbose_name="asignado al equipo",
                                    help_text="Si es un instrumento de otro equipo, por ejemplo el termómetro de una estufa.")
     # --- Ficha técnica (RF-06) ---
+    tipo = models.ForeignKey("catalogos.TipoInstrumento", on_delete=models.PROTECT, null=True, blank=True,
+                             related_name="equipos", verbose_name="tipo de instrumento")
+    caracteristicas = models.JSONField("datos técnicos del tipo", default=dict, blank=True,
+                                       help_text="Los datos propios de la familia, por ejemplo la clase de una balanza.")
+    critico = models.BooleanField("equipo crítico", default=False,
+                                  help_text="Afecta la validez de los resultados, también si es auxiliar "
+                                            "(por ejemplo el control ambiental). POL003 del ONA.")
     unidad = models.ForeignKey("catalogos.Unidad", on_delete=models.PROTECT, verbose_name="unidad de medida")
     rango_min = models.DecimalField("rango desde", max_digits=14, decimal_places=6, null=True, blank=True)
     rango_max = models.DecimalField("rango hasta", max_digits=14, decimal_places=6, null=True, blank=True)
@@ -88,6 +95,16 @@ class Equipo(ModeloVersionado):
 
     def get_absolute_url(self):
         return reverse("equipos:ficha", args=[self.pk])
+
+    @property
+    def familia(self):
+        return self.tipo.familia if self.tipo_id else "otro"
+
+    def datos_tecnicos(self):
+        """[(etiqueta, valor)] de los datos propios de su familia, en el orden de la familia."""
+        from .familias import mostrar
+
+        return mostrar(self.familia, self.caracteristicas)
 
     @property
     def de_baja(self):

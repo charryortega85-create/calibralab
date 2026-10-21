@@ -13,6 +13,8 @@ class TipoServicio(models.TextChoices):
     CALIBRACION = "calibracion", "Calibración"
     CALIFICACION = "calificacion", "Calificación"
     CERTIFICACION = "certificacion", "Certificación"
+    # ISO/IEC 17025 6.4.10: comprobación entre calibraciones. No cambia la próxima calibración.
+    VERIFICACION = "verificacion", "Verificación intermedia"
 
 
 class Resultado(models.TextChoices):
@@ -43,6 +45,13 @@ class Servicio(ModeloVersionado):
     certificado = models.FileField("archivo del certificado", upload_to=ruta_certificado, blank=True)
     trazabilidad = models.CharField("trazabilidad declarada", max_length=250, blank=True,
                                     help_text="Patrón o laboratorio al que remite el certificado.")
+    fuera_alcance = models.BooleanField(
+        "fuera del alcance acreditado del proveedor", default=False,
+        help_text="Márcalo si el proveedor calibró algo que no figura en su alcance de acreditación.")
+    justificacion_trazabilidad = models.TextField(
+        "justificación de la trazabilidad", blank=True,
+        help_text="Obligatoria si el proveedor no es un INM ni un laboratorio acreditado, si su acreditación estaba "
+                  "vencida o si la calibración quedó fuera de su alcance (ONA POL003 10.3 y 10.4).")
     ajustes = models.TextField("ajustes realizados", blank=True)
     observaciones = models.TextField("observaciones", blank=True)
     # Calibración (RF-17 a RF-19)
@@ -87,6 +96,25 @@ class Servicio(ModeloVersionado):
     @property
     def es_calibracion(self):
         return self.tipo == TipoServicio.CALIBRACION
+
+    def motivos_justificacion(self):
+        """Por qué el ONA pide justificar la trazabilidad de esta calibración (lista vacía: no hace falta)."""
+        if not self.es_calibracion or not self.proveedor_id:
+            return []
+        p, motivos = self.proveedor, []
+        if not p.acreditado:
+            motivos.append("el proveedor no es un INM ni un laboratorio acreditado")
+        elif p.acreditacion_vence and self.fecha and p.acreditacion_vence < self.fecha:
+            motivos.append("la acreditación del proveedor estaba vencida en la fecha de calibración")
+        if self.fuera_alcance:
+            motivos.append("la calibración quedó fuera del alcance acreditado")
+        return motivos
+
+    @property
+    def puntos_sin_incertidumbre(self):
+        if not self.es_calibracion:
+            return 0
+        return sum(1 for p in self.puntos.all() if p.incertidumbre is None and p.error is not None)
 
     @property
     def conforme(self):
@@ -175,6 +203,8 @@ class PatronUtilizado(ModeloVersionado):
     identificacion = models.CharField("identificación", max_length=60)
     descripcion = models.CharField("descripción", max_length=150, blank=True)
     certificado = models.CharField("certificado del patrón", max_length=60, blank=True)
+    laboratorio_custodio = models.CharField("laboratorio que lo calibró", max_length=150, blank=True,
+                                            help_text="INM o laboratorio acreditado que calibró el patrón.")
     proxima_calibracion = models.CharField("próxima calibración del patrón", max_length=7, blank=True,
                                            validators=[RegexValidator(r"^\d{4}-(0[1-9]|1[0-2])$",
                                                                       "Escribe el mes como AAAA-MM, por ejemplo 2027-04.")],

@@ -1,10 +1,13 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from apps.catalogos.models import Area, Marca, Ubicacion, Unidad
+import json
+
+from apps.catalogos.models import Area, Marca, TipoInstrumento, Ubicacion, Unidad
 from apps.core.formularios import FechaInput, MotivoMixin
 from apps.cuentas.models import Usuario
 
+from . import familias
 from .models import CambioEstado, Documento, Equipo, EstadoEquipo, PuntoCalibracion, TipoEMP
 
 
@@ -18,15 +21,16 @@ class EquipoForm(MotivoMixin, forms.ModelForm):
     grupos = [
         ("Identificación", ["codigo", "patrimonio", "descripcion", "marca", "modelo", "numero_serie",
                             "area", "ubicacion", "responsable", "asignado_a"]),
-        ("Ficha técnica", ["unidad", "rango_min", "rango_max", "resolucion", "capacidad", "tolerancia",
-                           "criticidad", "intervalo_meses"]),
+        ("Ficha técnica", ["tipo", "unidad", "rango_min", "rango_max", "resolucion", "capacidad", "tolerancia",
+                           "criticidad", "critico", "intervalo_meses"]),
+        ("Datos del tipo de instrumento", [f"dt_{d.clave}" for fam in familias.FAMILIAS.values() for d in fam]),
         ("Otros datos", ["observaciones", "motivo"]),
     ]
 
     class Meta:
         model = Equipo
         fields = ["codigo", "patrimonio", "descripcion", "marca", "modelo", "numero_serie", "area", "ubicacion",
-                  "responsable", "asignado_a", "unidad", "rango_min", "rango_max", "resolucion", "capacidad",
+                  "responsable", "asignado_a", "tipo", "critico", "unidad", "rango_min", "rango_max", "resolucion", "capacidad",
                   "tolerancia", "criticidad", "intervalo_meses", "observaciones"]
         widgets = {"observaciones": forms.Textarea(attrs={"rows": 3})}
 
@@ -50,6 +54,20 @@ class EquipoForm(MotivoMixin, forms.ModelForm):
 
             asignable = equipos_visibles(usuario, asignable)
         self.fields["asignado_a"].queryset = asignable.exclude(pk=i.pk) if i.pk else asignable
+        tipos = activos_o_actual(TipoInstrumento.objects.all(), i.tipo_id)
+        self.fields["tipo"].queryset = tipos
+        # El navegador muestra solo los datos de la familia del tipo elegido (static/js/calibralab.js).
+        self.fields["tipo"].widget.attrs["data-familias"] = json.dumps({str(t.pk): t.familia for t in tipos})
+        for familia, lista in familias.FAMILIAS.items():
+            for d in lista:
+                attrs = {"data-familia": familia}
+                if d.tipo == "opciones":
+                    campo = forms.ChoiceField(choices=[("", "—")] + [(o, o) for o in d.opciones], widget=forms.Select(attrs=attrs))
+                else:
+                    campo = forms.CharField(widget=forms.TextInput(attrs={**attrs, "inputmode": "decimal"} if d.tipo != "texto" else attrs))
+                campo.label, campo.help_text, campo.required = d.etiqueta, d.ayuda, False
+                campo.initial = (i.caracteristicas or {}).get(d.clave, "") if i.familia == familia else ""
+                self.fields[f"dt_{d.clave}"] = campo
 
     def clean_codigo(self):
         return self.cleaned_data["codigo"].strip().upper()
@@ -59,6 +77,16 @@ class EquipoForm(MotivoMixin, forms.ModelForm):
         mn, mx = datos.get("rango_min"), datos.get("rango_max")
         if mn is not None and mx is not None and mn > mx:
             self.add_error("rango_max", "El rango «hasta» debe ser mayor o igual que el rango «desde».")
+        # Solo se guardan los datos de la familia del tipo elegido.
+        tipo = datos.get("tipo")
+        valores = {}
+        for d in familias.datos(tipo.familia if tipo else "otro"):
+            valor, error = familias.limpiar(d, datos.get(f"dt_{d.clave}"))
+            if error:
+                self.add_error(f"dt_{d.clave}", error)
+            elif valor:
+                valores[d.clave] = valor
+        self.instance.caracteristicas = valores
         return datos
 
     def grupos_de_campos(self):
