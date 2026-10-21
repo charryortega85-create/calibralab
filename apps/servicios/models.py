@@ -45,13 +45,6 @@ class Servicio(ModeloVersionado):
     certificado = models.FileField("archivo del certificado", upload_to=ruta_certificado, blank=True)
     trazabilidad = models.CharField("trazabilidad declarada", max_length=250, blank=True,
                                     help_text="Patrón o laboratorio al que remite el certificado.")
-    fuera_alcance = models.BooleanField(
-        "fuera del alcance acreditado del proveedor", default=False,
-        help_text="Márcalo si el proveedor calibró algo que no figura en su alcance de acreditación.")
-    justificacion_trazabilidad = models.TextField(
-        "justificación de la trazabilidad", blank=True,
-        help_text="Obligatoria si el proveedor no es un INM ni un laboratorio acreditado, si su acreditación estaba "
-                  "vencida o si la calibración quedó fuera de su alcance (ONA POL003 10.3 y 10.4).")
     ajustes = models.TextField("ajustes realizados", blank=True)
     observaciones = models.TextField("observaciones", blank=True)
     # Calibración (RF-17 a RF-19)
@@ -96,19 +89,6 @@ class Servicio(ModeloVersionado):
     @property
     def es_calibracion(self):
         return self.tipo == TipoServicio.CALIBRACION
-
-    def motivos_justificacion(self):
-        """Por qué el ONA pide justificar la trazabilidad de esta calibración (lista vacía: no hace falta)."""
-        if not self.es_calibracion or not self.proveedor_id:
-            return []
-        p, motivos = self.proveedor, []
-        if not p.acreditado:
-            motivos.append("el proveedor no es un INM ni un laboratorio acreditado")
-        elif p.acreditacion_vence and self.fecha and p.acreditacion_vence < self.fecha:
-            motivos.append("la acreditación del proveedor estaba vencida en la fecha de calibración")
-        if self.fuera_alcance:
-            motivos.append("la calibración quedó fuera del alcance acreditado")
-        return motivos
 
     @property
     def puntos_sin_incertidumbre(self):

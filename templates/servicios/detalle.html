@@ -22,9 +22,8 @@
     <div class="status-box"><small>Vigente hasta</small><b>{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}</b></div>
     {% endif %}
   </div>
-  {% with sin_u=s.puntos_sin_incertidumbre motivos=s.motivos_justificacion %}
+  {% with sin_u=s.puntos_sin_incertidumbre %}
   {% if sin_u %}<div class="msg warning" role="status">{{ sin_u }} punto{{ sin_u|pluralize }} sin incertidumbre (U). El ONA pide que el certificado informe la incertidumbre de cada resultado: revisa el certificado{% if user.puede_editar %} y <a class="link" href="{% url 'servicios:corregir' s.pk %}">complétala</a>{% endif %}.</div>{% endif %}
-  {% if motivos and not s.justificacion_trazabilidad %}<div class="msg warning" role="status">Falta justificar la trazabilidad: {{ motivos|join:" y " }} (ONA POL003).</div>{% endif %}
   {% endwith %}
 
   {% if s.resultado == "no_conforme" and s.es_calibracion %}

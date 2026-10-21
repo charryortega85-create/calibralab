@@ -18,8 +18,7 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
     )
 
     grupos = [
-        ("Servicio", ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad",
-                     "fuera_alcance", "justificacion_trazabilidad"], ""),
+        ("Servicio", ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad"], ""),
         ("Calibración", ["regla", "proxima_manual", "justificacion_proxima"], "calibracion"),
         ("Calificación, certificación o verificación", ["resultado", "criterios_aceptacion", "vigencia_hasta"], "otro"),
         ("Datos del certificado", ["lugar", "temperatura_ambiente", "humedad_relativa", "procedimiento",
@@ -29,8 +28,7 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
 
     class Meta:
         model = Servicio
-        fields = ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad",
-                  "fuera_alcance", "justificacion_trazabilidad", "regla",
+        fields = ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad", "regla",
                   "justificacion_proxima", "resultado", "criterios_aceptacion", "vigencia_hasta", "lugar",
                   "temperatura_ambiente", "humedad_relativa", "procedimiento", "realizado_por", "autorizado_por",
                   "ajustes", "observaciones"]
@@ -38,7 +36,6 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
             "fecha": FechaInput(), "vigencia_hasta": FechaInput(),
             "ajustes": forms.Textarea(attrs={"rows": 2}), "observaciones": forms.Textarea(attrs={"rows": 2}),
             "criterios_aceptacion": forms.Textarea(attrs={"rows": 2}),
-            "justificacion_trazabilidad": forms.Textarea(attrs={"rows": 2}),
         }
         labels = {"resultado": "Resultado (lo registra una persona)"}
 
@@ -76,7 +73,6 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
                 self.add_error("proxima_manual", "La próxima fecha debe ser posterior a la fecha de ejecución.")
             d["resultado"] = self.instance.resultado or ""
             d["vigencia_hasta"] = None
-            self._revisar_trazabilidad(d)
         else:
             if not d.get("resultado"):
                 self.add_error("resultado", "Indica si el resultado fue conforme o no conforme (RF-20).")
@@ -86,17 +82,6 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
                 self.add_error("vigencia_hasta", "La vigencia debe terminar después de la fecha de ejecución.")
             d["proxima_manual"] = None
         return d
-
-    def _revisar_trazabilidad(self, d):
-        """ONA POL003 10.3 y 10.4: sin proveedor reconocido o fuera del alcance, se justifica por escrito."""
-        if not d.get("proveedor"):
-            return
-        prueba = Servicio(tipo=TipoServicio.CALIBRACION, proveedor=d["proveedor"], fecha=d.get("fecha"),
-                          fuera_alcance=d.get("fuera_alcance", False))
-        motivos = prueba.motivos_justificacion()
-        if motivos and not d.get("justificacion_trazabilidad", "").strip():
-            self.add_error("justificacion_trazabilidad",
-                           f"Justifica la trazabilidad: {' y '.join(motivos)} (ONA POL003).")
 
     def grupos_de_campos(self):
         return [(t, [self[c] for c in campos if c in self.fields], clase) for t, campos, clase in self.grupos]

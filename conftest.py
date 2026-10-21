@@ -58,7 +58,7 @@ def catalogo(db):
         "marca": Marca.objects.create(nombre="Marca A"),
         "ubicacion": Ubicacion.objects.create(nombre="Sala de balanzas"),
         "unidad": Unidad.objects.create(nombre="gramo", simbolo="g", magnitud="masa"),
-        "proveedor": Proveedor.objects.create(nombre="Proveedor Y", reconocimiento="ona"),
+        "proveedor": Proveedor.objects.create(nombre="Proveedor Y"),
     }
 
 

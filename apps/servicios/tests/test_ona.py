@@ -1,42 +1,10 @@
-"""Ajustes pedidos por el ONA (POL003 y CRI008): trazabilidad, incertidumbre y verificación intermedia."""
+"""Ajustes pedidos por el ONA (POL003 y CRI008): incertidumbre y verificación intermedia."""
 from datetime import date, timedelta
 
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.catalogos.models import Proveedor
 from apps.servicios.models import Servicio, TipoServicio
-
-from .test_servicios import datos_calibracion
-
-LECTURAS = [("100", "100.1"), ("500", "500"), ("1000", "1000.2")]
-
-
-def crear(cliente, equipo, datos):
-    return cliente.post(f"{reverse('servicios:crear')}?equipo={equipo.pk}", datos)
-
-
-def test_proveedor_no_acreditado_pide_justificar(cliente_de, tecnico, crear_equipo):
-    e = crear_equipo()
-    otro = Proveedor.objects.create(nombre="Taller local")  # reconocimiento «otro»
-    c = cliente_de(tecnico)
-    r = crear(c, e, datos_calibracion(otro, LECTURAS))
-    assert "Justifica la trazabilidad: el proveedor no es un INM" in r.content.decode()
-    assert not Servicio.objects.exists()
-    crear(c, e, datos_calibracion(otro, LECTURAS, justificacion_trazabilidad="No hay laboratorio acreditado en masa."))
-    assert Servicio.objects.get().justificacion_trazabilidad
-
-
-def test_fuera_de_alcance_o_acreditacion_vencida_pide_justificar(cliente_de, tecnico, crear_equipo, catalogo):
-    e = crear_equipo()
-    c = cliente_de(tecnico)
-    r = crear(c, e, datos_calibracion(catalogo["proveedor"], LECTURAS, fuera_alcance="on"))
-    assert "fuera del alcance acreditado" in r.content.decode()
-    p = catalogo["proveedor"]
-    p.acreditacion_vence = timezone.localdate() - timedelta(days=30)
-    p.save()
-    r = crear(c, e, datos_calibracion(p, LECTURAS))
-    assert "estaba vencida" in r.content.decode() and not Servicio.objects.exists()
 
 
 def test_falta_de_incertidumbre_se_avisa(cliente_de, tecnico, crear_equipo, calibrar):

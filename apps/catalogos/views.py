@@ -15,8 +15,7 @@ LISTAS = {
     "marcas": (Marca, ["nombre", "activo"]),
     "ubicaciones": (Ubicacion, ["nombre", "activo"]),
     "unidades": (Unidad, ["simbolo", "nombre", "magnitud", "activo"]),
-    "proveedores": (Proveedor, ["nombre", "ruc", "contacto", "correo", "telefono", "reconocimiento", "acreditacion",
-                                "acreditacion_vence", "activo"]),
+    "proveedores": (Proveedor, ["nombre", "ruc", "contacto", "correo", "telefono", "acreditacion", "activo"]),
     "tipos-de-instrumento": (TipoInstrumento, ["familia", "nombre", "activo"]),
 }
 
