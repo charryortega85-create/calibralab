@@ -94,7 +94,7 @@ def sumar_meses(fecha, meses):
 
 
 def proxima_fecha(fecha_conforme, intervalo_meses):
-    """RN-02: fecha de la última calibración conforme + intervalo del equipo."""
+    """RN-02: fecha de la calibración + intervalo del equipo."""
     return sumar_meses(fecha_conforme, intervalo_meses)
 
 

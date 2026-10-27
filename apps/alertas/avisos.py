@@ -23,7 +23,7 @@ def pendientes(dia=None):
     resultado = []
     for e in activos(dia=dia).filter(estado_cal__in=list(TIPO_POR_ESTADO)).select_related("responsable"):
         if e.proxima is None:
-            continue  # sin calibración conforme: no hay vencimiento que avisar
+            continue  # sin fecha de próxima calibración: no hay vencimiento que avisar
         tipo = TIPO_POR_ESTADO[e.estado_cal]
         ya = Aviso.objects.filter(equipo=e, tipo=tipo, proxima_fecha=e.proxima, resultado=ResultadoEnvio.ENVIADO)
         if not ya.exists():

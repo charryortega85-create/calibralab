@@ -1,6 +1,9 @@
 """
 Estado de calibración de los equipos (RN-02, RN-03), calculado en la base de datos para
 poder filtrar y ordenar listados grandes (RNF-21) sin guardarlo nunca.
+
+El estado sale de la fecha de próxima calibración de la última calibración registrada,
+sea cual sea el resultado que informó el proveedor.
 """
 from dataclasses import dataclass
 from datetime import date
@@ -11,7 +14,7 @@ from django.utils import timezone
 from apps.cuentas.models import Configuracion
 from apps.equipos.models import ORDEN_CRITICIDAD, Equipo, EstadoEquipo
 from apps.servicios.calculos import Estado
-from apps.servicios.models import Resultado, Servicio, TipoServicio
+from apps.servicios.models import Servicio, TipoServicio
 
 
 def hoy():
@@ -19,16 +22,17 @@ def hoy():
 
 
 def con_estado(qs=None, dia=None, plazo=None):
-    """Anota cada equipo con `proxima` (fecha) y `estado_cal` (RN-03)."""
+    """Anota cada equipo con `proxima` (fecha), `ultimo_resultado` y `estado_cal` (RN-03)."""
     dia = dia or hoy()
     plazo = Configuracion.actual().plazo_aviso_dias if plazo is None else plazo
     qs = Equipo.objects.all() if qs is None else qs
     calibraciones = Servicio.objects.filter(equipo=OuterRef("pk"), tipo=TipoServicio.CALIBRACION)
-    ultima_conforme = calibraciones.filter(resultado=Resultado.CONFORME).order_by("-fecha", "-pk")
+    ultima = calibraciones.order_by("-fecha", "-pk")
     limite = date.fromordinal(dia.toordinal() + plazo)
     return qs.annotate(
         tiene_cal=Exists(calibraciones),
-        proxima=Subquery(ultima_conforme.values("proxima_fecha")[:1]),
+        proxima=Subquery(ultima.values("proxima_fecha")[:1]),
+        ultimo_resultado=Subquery(ultima.values("resultado")[:1]),
     ).annotate(
         estado_cal=Case(
             When(tiene_cal=False, then=Value(Estado.SIN_REGISTRO)),

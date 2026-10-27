@@ -20,7 +20,7 @@
   {# Tres datos distintos que no se deben confundir (II.1.4) #}
   <div class="status-row">
     <div class="status-box"><small>Estado de calibración</small>{{ e.estado_cal|estado_cal }}
-      <span class="sub">{% if e.proxima %}Próxima: {{ e.proxima|date:"Y-m-d" }} ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin calibración conforme{% endif %}</span></div>
+      <span class="sub">{% if e.proxima %}Próxima: {{ e.proxima|date:"Y-m-d" }} ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin fecha de próxima calibración{% endif %}</span></div>
     <div class="status-box"><small>Aptitud (última calibración)</small>{% if ultima_cal %}{{ ultima_cal|dictamen }}<span class="sub">{{ ultima_cal.fecha|date:"Y-m-d" }} · <a class="link" href="{% url 'servicios:certificado' ultima_cal.pk %}">{{ ultima_cal.numero_certificado }}</a></span>{% else %}<span class="badge b-mute">Sin calibraciones</span>{% endif %}</div>
     <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}<span class="sub">Criticidad: {{ e.criticidad|criticidad }}{% if e.critico %} · <b>Equipo crítico</b>{% endif %}</span></div>
     {% for v in vigencias %}

@@ -52,7 +52,7 @@
         <td>{{ e.responsable }}</td>
         <td>{{ e.criticidad|criticidad }}</td>
         <td class="nw">{% if e.proxima %}{{ e.proxima|date:"Y-m-d" }}{% else %}—{% endif %}</td>
-        <td>{{ e.estado_cal|estado_cal }}</td>
+        <td>{{ e.estado_cal|estado_cal }}{{ e.ultimo_resultado|marca_no_conforme }}</td>
       </tr>
     {% empty %}
       <tr><td colspan="7" class="empty">Ningún equipo coincide con los filtros. Prueba con otro código o quita algún filtro.</td></tr>

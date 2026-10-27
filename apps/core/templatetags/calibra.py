@@ -26,6 +26,14 @@ def estado_cal(valor):
 
 
 @register.filter
+def marca_no_conforme(resultado):
+    """Marca junto al estado cuando la última calibración se informó no conforme."""
+    if resultado != "no_conforme":
+        return ""
+    return _badge("b-bad", "i-x", "No conforme", "La última calibración se informó no conforme")
+
+
+@register.filter
 def dictamen(servicio):
     if not servicio or not servicio.resultado:
         return _badge("b-mute", "i-minus", "Sin dictamen")
