@@ -85,7 +85,22 @@ def crear_equipo(catalogo, tecnico):
 
 @pytest.fixture
 def calibrar(catalogo):
-    """Registra una calibración directamente en la base (sin pasar por la pantalla)."""
+    """Registra una calibración directamente en la base, tal como la informa el proveedor (sin puntos)."""
+    from apps.servicios.models import Servicio
+
+    def registrar(equipo, fecha, resultado="conforme", numero="CC-1"):
+        s = Servicio(equipo=equipo, fecha=fecha, proveedor=catalogo["proveedor"], numero_certificado=numero,
+                     resultado=resultado, registrado_por=equipo.responsable)
+        s.calcular_proxima_fecha()
+        s.save()
+        return s
+
+    return registrar
+
+
+@pytest.fixture
+def calibrar_con_puntos(catalogo):
+    """Registra una calibración con puntos medidos y el resultado calculado (módulos ocultos)."""
     from decimal import Decimal
 
     from apps.servicios.models import PuntoMedido, Servicio

@@ -23,13 +23,13 @@ def test_estado_segun_la_ultima_calibracion_conforme(crear_equipo, calibrar):
     assert estado_de(e, date(2026, 10, 16)) == Estado.VENCIDO
     assert estado_de(e, date(2026, 9, 15)) == Estado.POR_VENCER
     assert estado_de(e, date(2026, 9, 14)) == Estado.VIGENTE
-    calibrar(e, date(2026, 10, 10), errores=("0.9", "0", "0"))  # un no apto no da fecha nueva
+    calibrar(e, date(2026, 10, 10), resultado="no_conforme")  # un no conforme no cuenta
     assert estado_de(e, date(2026, 10, 15)) == Estado.POR_VENCER
 
 
 def test_calibrado_pero_nunca_conforme_es_vencido(crear_equipo, calibrar):
     e = crear_equipo()
-    calibrar(e, date(2026, 10, 1), errores=("0.9", "0", "0"))
+    calibrar(e, date(2026, 10, 1), resultado="no_conforme")
     assert estado_de(e, date(2026, 10, 2)) == Estado.VENCIDO
 
 

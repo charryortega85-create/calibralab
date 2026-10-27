@@ -35,7 +35,7 @@ def test_calibracion_apta_calcula_proxima_fecha(cliente_de, tecnico, crear_equip
         catalogo["proveedor"], [("100", "100.2"), ("500", "499.7"), ("1000", "1000.4")]))
     s = Servicio.objects.get()
     assert r.status_code == 302 and r.url == s.get_absolute_url()
-    assert s.resultado == Resultado.CONFORME and s.dictamen == "Apto"
+    assert s.resultado == Resultado.CONFORME and s.dictamen == "Conforme"
     ayer = timezone.localdate() - timedelta(days=1)
     assert s.proxima_fecha == s.proxima_fecha_calculada == ayer.replace(year=ayer.year + 1)
     assert [p.cumple for p in s.puntos.all()] == [True, True, True]
@@ -61,7 +61,7 @@ def test_no_apto_pide_decision_y_pasa_a_fuera_de_servicio(cliente_de, tecnico, c
 
 def test_mantener_estado_exige_justificacion(cliente_de, tecnico, crear_equipo, calibrar):
     e = crear_equipo()
-    s = calibrar(e, date(2026, 9, 1), errores=("0.9", "0", "0"))
+    s = calibrar(e, date(2026, 9, 1), resultado="no_conforme")
     r = cliente_de(tecnico).post(reverse("servicios:decision", args=[s.pk]), {"decision": "mantener"})
     assert r.status_code == 200 and not DecisionNoApto.objects.exists()
 
@@ -106,9 +106,9 @@ def test_calificacion_registra_resultado_y_vigencia(cliente_de, tecnico, crear_e
     assert r.status_code == 302 and s.dictamen == "Conforme" and s.proxima_fecha is None
 
 
-def test_rn07_correccion_conserva_version_y_motivo(cliente_de, tecnico, crear_equipo, calibrar, catalogo):
+def test_rn07_correccion_conserva_version_y_motivo(cliente_de, tecnico, crear_equipo, calibrar_con_puntos, catalogo):
     e = crear_equipo()
-    s = calibrar(e, date(2026, 3, 9))
+    s = calibrar_con_puntos(e, date(2026, 3, 9))
     p = s.puntos.order_by("orden")
     datos = {"fecha": "2026-03-09", "proveedor": catalogo["proveedor"].pk, "numero_certificado": "CC-1-BIS",
              "regla": "simple", "motivo": "Error de transcripción del certificado", "certificado": pdf(),
@@ -144,5 +144,5 @@ def test_lista_exporta(cliente_de, consulta, crear_equipo, calibrar):
     c = cliente_de(consulta)
     r = c.get(reverse("servicios:lista"), {"formato": "csv"})
     texto = r.content.decode("utf-8-sig")
-    assert r["Content-Type"].startswith("text/csv") and "EQ-0001" in texto and "Apto" in texto
+    assert r["Content-Type"].startswith("text/csv") and "EQ-0001" in texto and "Conforme" in texto
     assert c.get(reverse("servicios:lista"), {"formato": "xlsx"}).content[:2] == b"PK"

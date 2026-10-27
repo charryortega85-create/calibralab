@@ -7,12 +7,12 @@ from django.utils import timezone
 from apps.servicios.models import Servicio, TipoServicio
 
 
-def test_falta_de_incertidumbre_se_avisa(cliente_de, tecnico, crear_equipo, calibrar):
+def test_falta_de_incertidumbre_se_avisa(cliente_de, tecnico, crear_equipo, calibrar_con_puntos):
     e = crear_equipo()
-    s = calibrar(e, date(2026, 3, 1))
+    s = calibrar_con_puntos(e, date(2026, 3, 1))
     html = cliente_de(tecnico).get(s.get_absolute_url()).content.decode()
     assert "3 puntos sin incertidumbre (U)" in html
-    s2 = calibrar(e, date(2026, 4, 1), incertidumbre="0.05", numero="CC-2")
+    s2 = calibrar_con_puntos(e, date(2026, 4, 1), incertidumbre="0.05", numero="CC-2")
     assert "sin incertidumbre" not in cliente_de(tecnico).get(s2.get_absolute_url()).content.decode()
 
 

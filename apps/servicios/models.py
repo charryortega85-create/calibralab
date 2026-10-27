@@ -102,17 +102,22 @@ class Servicio(ModeloVersionado):
 
     @property
     def dictamen(self):
-        """Texto para mostrar: apto / no apto en calibraciones, conforme / no conforme en el resto."""
-        if not self.resultado:
-            return "Sin resultado"
-        if self.es_calibracion:
-            return "Apto" if self.conforme else "No apto"
-        return self.get_resultado_display()
+        """Resultado tal como lo informa el certificado del proveedor. El sistema no lo calcula."""
+        return self.get_resultado_display() if self.resultado else "Sin dictamen"
+
+    def calcular_proxima_fecha(self, proxima_manual=None, justificacion=""):
+        """RN-02: fecha + intervalo del equipo, o la fecha que una persona justifica. No guarda."""
+        self.proxima_fecha_calculada = calculos.proxima_fecha(self.fecha, self.equipo.intervalo_meses)
+        if proxima_manual and proxima_manual != self.proxima_fecha_calculada:
+            self.proxima_fecha, self.justificacion_proxima = proxima_manual, justificacion
+        else:
+            self.proxima_fecha, self.justificacion_proxima = self.proxima_fecha_calculada, ""
 
     def recalcular(self, proxima_manual=None, justificacion=""):
         """
         Calcula el error de cada punto, el dictamen (RN-04) y la próxima fecha (RN-02).
         Guarda la regla y el EMP usados en cada punto, aunque luego cambien en la ficha (RN-06).
+        Ya no se usa desde la interfaz.
         """
         if not self.es_calibracion:
             return

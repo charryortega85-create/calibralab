@@ -57,11 +57,11 @@ def test_ona_alargar_pide_tres_calibraciones_separadas_por_un_anio():
     assert sugerir(seguidas, 3).cambio == "mantener"
 
 
-def test_con_datos_guardados_y_en_la_ficha(cliente_de, tecnico, crear_equipo, calibrar):
+def test_con_datos_guardados_y_en_la_ficha(cliente_de, tecnico, crear_equipo, calibrar_con_puntos):
     e = crear_equipo()  # EMP ±0,5 en cada punto
-    calibrar(e, date(2024, 3, 1), errores=("0.05", "0.05", "0.05"), numero="CC-1")
-    calibrar(e, date(2025, 3, 1), errores=("0.05", "-0.05", "0.05"), numero="CC-2")
-    calibrar(e, date(2026, 3, 2), errores=("0.05", "0.05", "-0.05"), numero="CC-3")
+    calibrar_con_puntos(e, date(2024, 3, 1), errores=("0.05", "0.05", "0.05"), numero="CC-1")
+    calibrar_con_puntos(e, date(2025, 3, 1), errores=("0.05", "-0.05", "0.05"), numero="CC-2")
+    calibrar_con_puntos(e, date(2026, 3, 2), errores=("0.05", "0.05", "-0.05"), numero="CC-3")
     s = sugerencia_para(e)
     assert s.uso_pct == 10 and (s.cambio, s.meses) == ("alargar", 18)
     html = cliente_de(tecnico).get(e.get_absolute_url()).content.decode()

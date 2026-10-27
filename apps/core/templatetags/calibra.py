@@ -28,7 +28,7 @@ def estado_cal(valor):
 @register.filter
 def dictamen(servicio):
     if not servicio or not servicio.resultado:
-        return _badge("b-mute", "i-minus", "Sin resultado")
+        return _badge("b-mute", "i-minus", "Sin dictamen")
     ok = servicio.conforme
     return _badge("b-ok" if ok else "b-bad", "i-check" if ok else "i-x", servicio.dictamen)
 
