@@ -1,14 +1,13 @@
 {% extends "base.html" %}{% load calibra %}
-{% block titulo %}Servicios{% endblock %}
+{% block titulo %}Calibraciones{% endblock %}
 {% block contenido %}
 <div class="page-head">
-  <div><div class="crumbs">Servicios</div><h1>Calibraciones, calificaciones y certificaciones</h1><p>{{ pagina.paginator.count }} servicio{{ pagina.paginator.count|pluralize }}.</p></div>
+  <div><div class="crumbs">Calibraciones</div><h1>Calibraciones registradas</h1><p>{{ pagina.paginator.count }} calibraci{{ pagina.paginator.count|pluralize:"ón,ones" }}.</p></div>
   <div class="actions"><a class="btn" href="?{{ consulta }}&formato=xlsx">Exportar a Excel</a><a class="btn" href="?{{ consulta }}&formato=csv">CSV</a>
-  {% if user.puede_editar %}<a class="btn primary" href="{% url 'servicios:crear' %}">{% icono "i-plus" %}Registrar servicio</a>{% endif %}</div>
+  {% if user.puede_editar %}<a class="btn primary" href="{% url 'servicios:crear' %}">{% icono "i-plus" %}Registrar calibración</a>{% endif %}</div>
 </div>
 <form class="filters" method="get">
   <div class="field"><label for="q">Buscar</label><input id="q" name="q" value="{{ f.q }}" placeholder="Equipo o n.º de certificado"></div>
-  <div class="field"><label for="tipo">Tipo</label><select id="tipo" name="tipo"><option value="">Todos</option>{% for v, t in tipos %}<option value="{{ v }}"{% if f.tipo == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
   <div class="field"><label for="resultado">Resultado</label><select id="resultado" name="resultado"><option value="">Todos</option>{% for v, t in resultados %}<option value="{{ v }}"{% if f.resultado == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
   <div class="field"><label for="proveedor">Proveedor</label><select id="proveedor" name="proveedor"><option value="">Todos</option>{% for p in proveedores %}<option value="{{ p.pk }}"{% if f.proveedor == p.pk|stringformat:"d" %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
   <div class="field"><label for="desde">Desde</label><input id="desde" type="date" name="desde" value="{{ f.desde }}"></div>
@@ -16,15 +15,14 @@
   <button class="btn" type="submit">Filtrar</button>
 </form>
 <div class="card"><div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Fecha</th><th>Equipo</th><th>Servicio</th><th>Certificado y proveedor</th><th>Resultado</th><th>Próxima / vigencia</th></tr></thead>
+  <thead><tr><th>Fecha</th><th>Equipo</th><th>Certificado y proveedor</th><th>Resultado informado</th><th>Próxima calibración</th></tr></thead>
   <tbody>{% for s in pagina %}<tr>
     <td class="nw">{{ s.fecha|date:"Y-m-d" }}</td>
     <td><a class="code link" href="{{ s.equipo.get_absolute_url }}">{{ s.equipo.codigo }}</a><span class="cell-sub">{{ s.equipo.descripcion }}</span></td>
-    <td>{{ s.get_tipo_display }}</td>
     <td><a class="link mono" href="{{ s.get_absolute_url }}">{{ s.numero_certificado }}</a><span class="cell-sub">{{ s.proveedor }}</span></td>
     <td>{{ s|dictamen }}</td>
     <td class="nw">{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"—" }}{% else %}{{ s.vigencia_hasta|date:"Y-m-d" }}{% endif %}</td>
-  </tr>{% empty %}<tr><td colspan="6" class="empty">No hay servicios con estos filtros.</td></tr>{% endfor %}</tbody>
+  </tr>{% empty %}<tr><td colspan="5" class="empty">No hay calibraciones con estos filtros.</td></tr>{% endfor %}</tbody>
 </table></div>
 {% if pagina.has_other_pages %}<nav class="pager">{% if pagina.has_previous %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>{% if pagina.has_next %}<a class="btn sm" href="?{{ consulta }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
 </div>
