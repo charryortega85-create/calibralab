@@ -35,8 +35,6 @@
     {% for m in ubicaciones %}<option value="{{ m.pk }}"{% if f.ubicacion == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
   <div class="field"><label for="responsable">Responsable</label><select id="responsable" name="responsable"><option value="">Todos</option>
     {% for m in responsables %}<option value="{{ m.pk }}"{% if f.responsable == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
-  <div class="field"><label for="lote">Lote</label><select id="lote" name="lote"><option value="">Todos</option>
-    {% for m in lotes %}<option value="{{ m.pk }}"{% if f.lote == m.pk|stringformat:"d" %} selected{% endif %}>{{ m.codigo }}</option>{% endfor %}</select></div>
   <button class="btn" type="submit">Filtrar</button>
   <a class="btn ghost" href="{% url 'equipos:lista' %}">Limpiar</a>
 </form>

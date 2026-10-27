@@ -65,6 +65,6 @@ def test_con_datos_guardados_y_en_la_ficha(cliente_de, tecnico, crear_equipo, ca
     s = sugerencia_para(e)
     assert s.uso_pct == 10 and (s.cambio, s.meses) == ("alargar", 18)
     html = cliente_de(tecnico).get(e.get_absolute_url()).content.decode()
-    assert "Sugerido: 18 meses" in html
+    assert "Sugerido" not in html  # la sugerencia de intervalo está fuera del alcance de la interfaz
     r = cliente_de(tecnico).get(reverse("reportes:intervalos")).content.decode()
     assert e.codigo in r and "Alargar" in r

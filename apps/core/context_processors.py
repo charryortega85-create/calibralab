@@ -9,8 +9,6 @@ MENU = [
     ("Principal", "Calibraciones", "i-gauge", "servicios:lista", "C", TODOS),
     ("Principal", "Certificados", "i-file", "servicios:certificados", "C", TODOS),
     ("Principal", "Estado y alertas", "i-bell", "alertas:estado", "D", TODOS),
-    ("Gestión", "Plan y presupuesto", "i-calendar", "plan:indice", "E", TODOS),
-    ("Gestión", "Mantenimiento", "i-wrench", "mantenimiento:indice", "F", TODOS),
     ("Gestión", "Reportes", "i-chart", "reportes:indice", "G", TODOS),
     ("Sistema", "Laboratorios y áreas", "i-building", "catalogos:laboratorios", "B", GESTORES),
     ("Sistema", "Usuarios", "i-users", "cuentas:usuarios", "A", ADMIN),

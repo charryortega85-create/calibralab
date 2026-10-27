@@ -46,6 +46,12 @@ def test_menu_enlaza_todos_los_modulos(cliente_de, admin):
         assert f'href="{reverse(nombre)}"' in html
 
 
+def test_menu_sin_plan_ni_mantenimiento(cliente_de, admin):
+    html = cliente_de(admin).get(reverse("core:inicio")).content.decode()
+    assert f'href="{reverse("plan:indice")}"' not in html
+    assert f'href="{reverse("mantenimiento:indice")}"' not in html
+
+
 def test_datos_de_ejemplo_y_pantallas_con_datos(cliente_de, settings):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     call_command("cargar_demo", sin_archivos=True, stdout=open("/dev/null", "w"))

@@ -17,7 +17,6 @@ from apps.core.qr import qr_svg, url_publica_equipo
 from apps.cuentas.models import Configuracion, Usuario
 from apps.cuentas.permisos import EDITORES, rol_requerido
 from apps.servicios.calculos import Estado
-from apps.servicios.intervalo import sugerencia_para
 from apps.servicios.models import TipoServicio
 
 from . import importar as imp
@@ -25,7 +24,7 @@ from .acceso import equipos_visibles
 from .forms import CambioEstadoForm, DocumentoForm, EquipoForm, ImportarForm, PuntosFormSet
 from .models import Criticidad, Equipo, EstadoEquipo
 
-FILTROS = ("q", "area", "tipo", "marca", "ubicacion", "responsable", "lote", "criticidad", "estado", "estado_cal")
+FILTROS = ("q", "area", "tipo", "marca", "ubicacion", "responsable", "criticidad", "estado", "estado_cal")
 
 
 def filtrar(request):
@@ -46,8 +45,6 @@ def filtrar(request):
     for campo in ("area", "tipo", "marca", "ubicacion", "responsable"):
         if f[campo].isdigit():
             qs = qs.filter(**{f"{campo}_id": f[campo]})
-    if f["lote"].isdigit():
-        qs = qs.filter(lotes__id=f["lote"])
     if f["criticidad"] in Criticidad.values:
         qs = qs.filter(criticidad=f["criticidad"])
     elif f["criticidad"] == "critico":
@@ -67,15 +64,13 @@ def lista(request):
     formato = request.GET.get("formato")
     if formato in ("csv", "xlsx"):
         return exportar_inventario(qs, formato)
-    from apps.plan.models import Lote
-
     pagina = Paginator(qs, 25).get_page(request.GET.get("page"))
     consulta = request.GET.copy()
     consulta.pop("page", None)
     return render(request, "equipos/lista.html", {
         "pagina": pagina, "f": f, "consulta": consulta.urlencode(), "total": pagina.paginator.count,
         "areas": areas_del_usuario(request.user), "marcas": Marca.objects.all(), "ubicaciones": Ubicacion.objects.all(),
-        "responsables": Usuario.objects.exclude(rol="consulta"), "lotes": Lote.objects.all(),
+        "responsables": Usuario.objects.exclude(rol="consulta"),
         "criticidades": Criticidad.choices, "estados": EstadoEquipo.choices, "familias": Familia.choices,
         "tipos": TipoInstrumento.objects.filter(activo=True),
         "estados_cal": Estado.ETIQUETAS.items(), "hoy": timezone.localdate(),
@@ -105,20 +100,17 @@ def exportar_inventario(qs, formato):
 def ficha(request, pk):
     equipo = get_object_or_404(con_estado(equipos_visibles(request.user, Equipo.objects.select_related(
         "marca", "ubicacion", "responsable", "unidad", "asignado_a", "area__laboratorio", "tipo"))), pk=pk)
-    servicios = equipo.servicios.select_related("proveedor", "registrado_por").prefetch_related("puntos")
+    servicios = equipo.servicios.select_related("proveedor", "registrado_por")
     ultima_cal = servicios.filter(tipo=TipoServicio.CALIBRACION).first()
     vigencias = [s for s in servicios.exclude(tipo=TipoServicio.CALIBRACION)
                  if s.vigencia_hasta and s == servicios.filter(tipo=s.tipo).first()]
     return render(request, "equipos/ficha.html", {
         "e": equipo, "servicios": servicios, "ultima_cal": ultima_cal, "vigencias": vigencias,
         "puntos": equipo.puntos.filter(activo=True), "cambios": equipo.cambios_estado.select_related("usuario"),
-        "documentos": equipo.documentos.all(), "novedades": equipo.novedades.select_related("responsable")[:20],
-        "planes_mant": equipo.planes_mantenimiento.filter(activo=True),
-        "instrumentos": equipo.instrumentos.all(), "lotes": equipo.lotes.all(),
+        "documentos": equipo.documentos.all(), "instrumentos": equipo.instrumentos.all(),
         "versiones": equipo.versiones()[:30], "estado_txt": Estado.ETIQUETAS[equipo.estado_cal],
         "dias": (equipo.proxima - timezone.localdate()).days if equipo.proxima else None,
         "plazo": Configuracion.actual().plazo_aviso_dias, "hoy": timezone.localdate(),
-        "intervalo": sugerencia_para(equipo),
     })
 
 

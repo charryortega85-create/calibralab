@@ -16,7 +16,7 @@ def test_hoja_de_vida_en_pdf(cliente_de, consulta, crear_equipo, calibrar):
     r = c.get(reverse("reportes:hoja_vida", args=[e.pk]))
     assert r["Content-Type"] == "application/pdf" and r.content[:4] == b"%PDF"
     html = c.get(reverse("reportes:hoja_vida", args=[e.pk]), {"formato": "html"}).content.decode()
-    assert "CC-1" in html and "Cambios de estado" in html and "Mantenimiento" in html
+    assert "CC-1" in html and "Cambios de estado" in html and "Mantenimiento" not in html
 
 
 def test_hoja_de_vida_sin_biblioteca_de_pdf_se_abre_para_imprimir(cliente_de, consulta, crear_equipo, monkeypatch):
