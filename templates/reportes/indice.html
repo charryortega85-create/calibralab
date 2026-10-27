@@ -1,19 +1,14 @@
 {% extends "base.html" %}{% load calibra %}
 {% block titulo %}Reportes{% endblock %}
 {% block contenido %}
-<div class="page-head"><div><div class="crumbs">Gestión</div><h1>Reportes</h1>
-<p>Para planificar el año y responder a una auditoría. Todos se pueden exportar a Excel o CSV, y la hoja de vida se genera en PDF.</p></div></div>
+<div class="page-head"><div><div class="crumbs">Reportes</div><h1>Reportes</h1>
+<p>Para seguir los vencimientos y responder a una auditoría. Todos se pueden exportar a Excel o CSV, y la hoja de vida se genera en PDF.</p></div></div>
 <div class="grid-2">
 <div class="card"><div class="card-h"><div><h2>Estado de los equipos</h2><p>Todos los equipos con su estado de calibración, ordenados por urgencia y criticidad.</p></div></div>
 <div class="card-b"><div class="actions"><a class="btn primary" href="{% url 'reportes:estado' %}">Ver reporte</a><a class="btn" href="{% url 'reportes:estado' %}?formato=xlsx">Excel</a><a class="btn" href="{% url 'reportes:estado' %}?formato=csv">CSV</a></div></div></div>
 <div class="card"><div class="card-h"><div><h2>Vencimientos</h2><p>Calibraciones que vencen en los próximos 30, 60 o 90 días, más las ya vencidas.</p></div></div>
 <div class="card-b"><div class="actions">{% for h in horizontes %}<a class="btn{% if forloop.last %} primary{% endif %}" href="{% url 'reportes:vencimientos' %}?dias={{ h }}">{{ h }} días</a>{% endfor %}</div></div></div>
-<div class="card"><div class="card-h"><div><h2>Revisión de intervalos</h2><p>Qué equipos conviene calibrar más seguido o pueden esperar más, según su deriva entre calibraciones.</p></div></div>
-<div class="card-b"><div class="actions"><a class="btn primary" href="{% url 'reportes:intervalos' %}">Ver reporte</a><a class="btn" href="{% url 'reportes:intervalos' %}?ver=todos&formato=xlsx">Excel</a></div></div></div>
-<div class="card"><div class="card-h"><div><h2>Ejecución por lote y avance presupuestario</h2><p>Lo programado frente a lo ejecutado, y lo previsto frente a lo pagado, de un plan anual.</p></div></div>
-<div class="card-b">{% if planes %}<form method="get" action="{% url 'reportes:ejecucion' %}" class="filters"><div class="field"><label for="plan">Plan anual</label><select id="plan" name="plan">{% for p in planes %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select></div><button class="btn primary" type="submit">Ver reporte</button></form>
-{% else %}<p class="cell-sub">Todavía no hay planes anuales. Se crean en <a class="link" href="{% url 'plan:indice' %}">Plan y presupuesto</a>.</p>{% endif %}</div></div>
-<div class="card"><div class="card-h"><div><h2>Hoja de vida de un equipo</h2><p>Ficha, servicios, mantenimientos y cambios de estado en un PDF.</p></div></div>
+<div class="card"><div class="card-h"><div><h2>Hoja de vida de un equipo</h2><p>Ficha, calibraciones y cambios de estado en un PDF.</p></div></div>
 <div class="card-b"><form method="get" class="filters" onsubmit="this.action='{% url 'reportes:hoja_vida' 0 %}'.replace('/0/','/'+this.equipo.value+'/');"><div class="field"><label for="equipo">Equipo</label><select id="equipo" name="equipo">{% for e in equipos %}<option value="{{ e.pk }}">{{ e.codigo }} · {{ e.descripcion }}</option>{% endfor %}</select></div><button class="btn primary" type="submit">Generar PDF</button></form>
 <p class="cell-sub">También está en la ficha de cada equipo.</p></div></div>
 </div>

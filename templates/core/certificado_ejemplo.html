@@ -25,10 +25,10 @@ table{width:100%;border-collapse:collapse}td,th{border:1px solid #cbd5e1;padding
 <table><tr><th>Fecha</th><td>{{ s.fecha|date:"Y-m-d" }}</td><th>Lugar</th><td>{{ s.lugar }}</td></tr>
 <tr><th>Temperatura</th><td>{{ s.temperatura_ambiente|num }} °C</td><th>Humedad relativa</th><td>{{ s.humedad_relativa|num }} %</td></tr>
 <tr><th>Procedimiento</th><td colspan="3">{{ s.procedimiento }}</td></tr></table>
-{% if s.es_calibracion %}<h2>4. Resultados</h2>
-<table><tr><th>Valor de referencia</th><th>Indicación del equipo</th><th>Error (E)</th><th>Incertidumbre (U, k=2)</th></tr>
-{% for p in s.puntos.all %}<tr><td>{{ p.valor_referencia|num }} {{ s.equipo.unidad }}</td><td>{{ p.valor_leido|num }}</td><td>{{ p.error|num }}</td><td>{{ p.incertidumbre|num }}</td></tr>{% endfor %}</table>
-{% else %}<h2>4. Resultado</h2><p>{{ s.criterios_aceptacion }} Resultado: <b>{{ s.get_resultado_display }}</b>. Vigente hasta {{ s.vigencia_hasta|date:"Y-m-d" }}.</p>{% endif %}
+<h2>4. Resultados</h2>
+{% if filas %}<table><tr><th>Valor de referencia</th><th>Indicación del equipo</th><th>Error (E)</th><th>Incertidumbre (U, k=2)</th></tr>
+{% for p in filas %}<tr><td>{{ p.referencia|num }} {{ s.equipo.unidad }}</td><td>{{ p.leido|num }}</td><td>{{ p.error|num }}</td><td>{{ p.incertidumbre|num }}</td></tr>{% endfor %}</table>{% endif %}
+{% if s.resultado %}<p>Declaración de conformidad: <b>{{ s.get_resultado_display }}</b>.</p>{% endif %}
 <div class="firma"><div>Realizado por<br><b>{{ s.realizado_por }}</b></div><div>Autorizado por<br><b>{{ s.autorizado_por }}</b></div></div>
 <p class="pie">Documento inventado para la demostración de CalibraLab. No corresponde a ningún laboratorio ni proveedor real.</p>
 </body></html>

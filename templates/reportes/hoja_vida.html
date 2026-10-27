@@ -45,28 +45,13 @@ table.ficha th{width:22%}table.ficha td{width:28%}
 {% if puntos %}<table class="puntos"><tr><th>Punto de calibración</th>{% for p in puntos %}<td>{{ p.valor_nominal|num }} {{ e.unidad|default:"" }}</td>{% endfor %}</tr>
 <tr><th>EMP</th>{% for p in puntos %}<td>{{ p.emp_texto }}</td>{% endfor %}</tr></table>{% endif %}
 
-<h2>Calibraciones, calificaciones y certificaciones</h2>
-{% if servicios %}<table><thead><tr><th>Fecha</th><th>Servicio</th><th>Certificado</th><th>Proveedor</th><th>Resultado</th><th>Próxima / vigencia</th><th>Registró</th></tr></thead><tbody>
+<h2>Calibraciones</h2>
+{% if servicios %}<table><thead><tr><th>Fecha</th><th>Servicio</th><th>Certificado</th><th>Proveedor</th><th>Resultado informado</th><th>Próxima calibración</th><th>Registró</th></tr></thead><tbody>
 {% for s in servicios %}<tr><td>{{ s.fecha|date:"Y-m-d" }}</td><td>{{ s.get_tipo_display }}</td><td>{{ s.numero_certificado }}</td><td>{{ s.proveedor }}</td>
-<td class="{% if s.conforme %}ok{% else %}na{% endif %}">{{ s.dictamen }}</td>
+<td class="{% if s.resultado == "conforme" %}ok{% elif s.resultado == "no_conforme" %}na{% endif %}">{{ s.dictamen }}</td>
 <td>{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"—" }}{% if s.justificacion_proxima %}<br><small>{{ s.justificacion_proxima }}</small>{% endif %}{% else %}{{ s.vigencia_hasta|date:"Y-m-d"|default:"—" }}{% endif %}</td>
 <td>{{ s.registrado_por }}</td></tr>
-{% if s.es_calibracion and s.puntos.all %}<tr><td></td><td colspan="6"><table class="puntos"><tr><th>Referencia</th><th>Error</th><th>U</th><th>EMP</th><th>Cumple</th></tr>
-{% for p in s.puntos.all %}<tr><td>{{ p.valor_referencia|num }}</td><td>{{ p.error|num }}</td><td>{{ p.incertidumbre|num }}</td><td>± {{ p.emp_aplicado|num }}</td><td>{{ p.cumple|yesno:"Sí,No,—" }}</td></tr>{% endfor %}</table></td></tr>{% endif %}
-{% endfor %}</tbody></table>{% else %}<p class="vacio">Sin servicios registrados.</p>{% endif %}
-
-{% if decisiones or evaluaciones %}<h2>Resultados no aptos: decisiones y evaluación del efecto</h2><table><thead><tr><th>Calibración</th><th>Decisión</th><th>Fuera de tolerancia desde</th><th>Evaluación del efecto</th></tr></thead><tbody>
-{% for d in decisiones %}<tr><td>{{ d.servicio.fecha|date:"Y-m-d" }} · {{ d.servicio.numero_certificado }}</td><td>{{ d.get_decision_display }}{% if d.justificacion %}: {{ d.justificacion }}{% endif %} ({{ d.decidido_por }})</td>
-<td>{{ d.fuera_tolerancia_desde|date:"Y-m-d"|default:"—" }}</td>
-<td>{% with ev=d.servicio.evaluacion %}{% if ev %}{{ ev.get_conclusion_display }} ({{ ev.fecha|date:"Y-m-d" }}){% if ev.acciones %}: {{ ev.acciones }}{% endif %}{% else %}<span class="na">Pendiente</span>{% endif %}{% endwith %}</td></tr>{% endfor %}
-</tbody></table>{% endif %}
-
-<h2>Mantenimiento</h2>
-{% if planes_mant %}<table><thead><tr><th>Tarea programada</th><th>Frecuencia</th><th>Responsable</th><th>Activa</th></tr></thead><tbody>
-{% for t in planes_mant %}<tr><td>{{ t.actividad }}</td><td>cada {{ t.frecuencia_meses }} mes{{ t.frecuencia_meses|pluralize:"es" }}</td><td>{{ t.responsable }}</td><td>{{ t.activo|yesno:"Sí,No" }}</td></tr>{% endfor %}</tbody></table>{% endif %}
-{% if novedades %}<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Resultado o acciones</th><th>Responsable</th></tr></thead><tbody>
-{% for n in novedades %}<tr><td>{{ n.fecha|date:"Y-m-d" }}</td><td>{{ n.get_tipo_display }}</td><td>{{ n.descripcion }}</td><td>{{ n.resultado|default:"—" }}</td><td>{{ n.responsable }}</td></tr>{% endfor %}</tbody></table>
-{% else %}<p class="vacio">Sin mantenimientos ni novedades registrados.</p>{% endif %}
+{% endfor %}</tbody></table>{% else %}<p class="vacio">Sin calibraciones registradas.</p>{% endif %}
 
 <h2>Cambios de estado</h2>
 {% if cambios %}<table><thead><tr><th>Fecha</th><th>De</th><th>A</th><th>Motivo</th><th>Decidió</th></tr></thead><tbody>

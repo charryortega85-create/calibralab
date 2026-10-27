@@ -3,6 +3,7 @@ import pytest
 from django.core.management import call_command
 from django.urls import reverse
 
+from apps.alertas.estado import con_estado
 from apps.equipos.models import Equipo
 from apps.servicios.models import Servicio
 
@@ -46,17 +47,27 @@ def test_menu_enlaza_todos_los_modulos(cliente_de, admin):
         assert f'href="{reverse(nombre)}"' in html
 
 
+def test_menu_sin_plan_ni_mantenimiento(cliente_de, admin):
+    html = cliente_de(admin).get(reverse("core:inicio")).content.decode()
+    assert f'href="{reverse("plan:indice")}"' not in html
+    assert f'href="{reverse("mantenimiento:indice")}"' not in html
+
+
 def test_datos_de_ejemplo_y_pantallas_con_datos(cliente_de, settings):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     call_command("cargar_demo", sin_archivos=True, stdout=open("/dev/null", "w"))
     call_command("cargar_demo", sin_archivos=True, stdout=open("/dev/null", "w"))  # no duplica
-    assert Equipo.objects.count() == 36 and Servicio.objects.count() == 40
+    assert Equipo.objects.count() == 36 and Servicio.objects.count() == 34
     from apps.cuentas.models import Usuario
 
     c = cliente_de(Usuario.objects.get(username="mperez"))
     e = Equipo.objects.get(codigo="EQ-0002")
     s = e.servicios.filter(resultado="no_conforme").get()
+    assert e.estado == "fuera_servicio" and s.proxima_fecha is not None
+    assert Servicio.objects.filter(resultado="").exists()
+    assert Equipo.objects.filter(puntos__isnull=True).exists() and Equipo.objects.filter(puntos__isnull=False).exists()
+    estados = set(con_estado().values_list("estado_cal", flat=True))
+    assert {"vigente", "por_vencer", "vencido"} <= estados
     for url in [reverse("core:inicio"), e.get_absolute_url(), s.get_absolute_url(),
-                reverse("mantenimiento:evaluacion", args=[s.pk]), reverse("reportes:hoja_vida", args=[e.pk]) + "?formato=html",
-                reverse("plan:indice"), reverse("reportes:ejecucion"), reverse("alertas:avisos")]:
+                reverse("reportes:hoja_vida", args=[e.pk]) + "?formato=html", reverse("alertas:avisos")]:
         assert c.get(url).status_code == 200, url

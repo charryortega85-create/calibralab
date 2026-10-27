@@ -2,7 +2,7 @@
 
 {% if tipo == "por_vencer" %}La calibración del equipo {{ e.codigo }} ({{ e.descripcion }}) vence el {{ e.proxima|date:"Y-m-d" }}, dentro de {{ dias }} día{{ dias|pluralize }}.
 Conviene coordinar la nueva calibración para que no quede vencida.{% else %}La calibración del equipo {{ e.codigo }} ({{ e.descripcion }}) VENCIÓ el {{ e.proxima|date:"Y-m-d" }}.
-No debería usarse para emitir resultados hasta registrar una nueva calibración conforme.{% endif %}
+No debería usarse para emitir resultados hasta registrar una nueva calibración.{% endif %}
 
 Ubicación: {{ e.ubicacion }}
 Criticidad: {{ e.get_criticidad_display }}

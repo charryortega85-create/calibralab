@@ -15,7 +15,7 @@
   </fieldset></div></div>
   {% endfor %}
   <div class="card"><div class="card-b"><fieldset class="grupo"><legend>Puntos a calibrar y EMP</legend>
-    <p class="cell-sub" style="margin-bottom:10px">Un renglón por punto. El EMP puede ser un valor fijo, un % de la lectura o un % del alcance. Para dejar de usar un punto, desmarca «activo».</p>
+    <p class="cell-sub" style="margin-bottom:10px">Opcional. Los define el técnico del laboratorio en los equipos que lo necesitan (por ejemplo, balanzas, termómetros o pipetas). Un renglón por punto, con el EMP que el laboratorio acepta (valor fijo, % de la lectura o % del alcance). Para dejar de usar un punto, desmarca la casilla “activo”.</p>
     {{ formset.management_form }}
     {% for e in formset.non_form_errors %}<div class="msg error">{{ e }}</div>{% endfor %}
     <div class="table-wrap"><table class="tbl tbl-form">

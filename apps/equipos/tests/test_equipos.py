@@ -25,6 +25,12 @@ def test_alta_de_equipo_con_puntos(cliente_de, tecnico, catalogo):
     assert r.status_code == 302 and e.codigo == "EQ-0100" and e.puntos.count() == 1
 
 
+def test_alta_de_equipo_sin_puntos(cliente_de, tecnico, catalogo):
+    r = cliente_de(tecnico).post(reverse("equipos:crear"), datos_equipo(catalogo, tecnico, **{"puntos-TOTAL_FORMS": 0}))
+    e = Equipo.objects.get()
+    assert r.status_code == 302 and e.puntos.count() == 0
+
+
 def test_rn01_codigo_y_serie_unicos(cliente_de, tecnico, catalogo, crear_equipo):
     crear_equipo("EQ-0100", marca=catalogo["marca"], modelo="BA-220", numero_serie="SN-1")
     c = cliente_de(tecnico)

@@ -23,7 +23,7 @@ URGENCIA = [Estado.VENCIDO, Estado.SIN_REGISTRO, Estado.POR_VENCER, Estado.VIGEN
 @login_required
 def indice(request):
     return render(request, "reportes/indice.html", {
-        "planes": PlanAnual.objects.all(), "equipos": equipos_visibles(request.user).only("pk", "codigo", "descripcion"),
+        "equipos": equipos_visibles(request.user).only("pk", "codigo", "descripcion"),
         "horizontes": HORIZONTES,
     })
 
@@ -31,14 +31,10 @@ def indice(request):
 # --- RF-36: hoja de vida -------------------------------------------------------------------------------
 
 def datos_hoja_vida(equipo):
-    servicios = equipo.servicios.select_related("proveedor", "registrado_por").prefetch_related("puntos")
+    servicios = equipo.servicios.select_related("proveedor", "registrado_por")
     return {
         "e": equipo, "servicios": servicios, "puntos": equipo.puntos.filter(activo=True),
         "cambios": equipo.cambios_estado.select_related("usuario"),
-        "novedades": equipo.novedades.select_related("responsable", "plan"),
-        "planes_mant": equipo.planes_mantenimiento.select_related("responsable"),
-        "decisiones": [s.decision for s in servicios if hasattr(s, "decision")],
-        "evaluaciones": [s.evaluacion for s in servicios if hasattr(s, "evaluacion")],
         "documentos": equipo.documentos.all(), "estado_txt": Estado.ETIQUETAS[equipo.estado_cal],
         "generado": timezone.localtime(),
     }

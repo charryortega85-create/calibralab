@@ -26,7 +26,7 @@ def test_plan_y_novedad_cierran_la_tarea(cliente_de, tecnico, crear_equipo):
 def test_evaluacion_del_efecto_vinculada_al_no_apto(cliente_de, tecnico, crear_equipo, calibrar):
     e = crear_equipo()
     calibrar(e, date(2025, 9, 10))
-    s = calibrar(e, date(2026, 9, 14), errores=("0.9", "0", "0"))
+    s = calibrar(e, date(2026, 9, 14), resultado="no_conforme")
     assert list(evaluaciones_pendientes()) == [s]
     c = cliente_de(tecnico)
     url = reverse("mantenimiento:evaluacion", args=[s.pk])

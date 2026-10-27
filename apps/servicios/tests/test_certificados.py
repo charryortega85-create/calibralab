@@ -15,7 +15,7 @@ JPG = b"\xff\xd8\xff\xe0 foto de prueba"
 
 def test_registrar_datos_del_certificado_y_patrones(cliente_de, tecnico, crear_equipo, catalogo):
     e = crear_equipo()
-    datos = datos_calibracion(catalogo["proveedor"], [("100", "100.1")], **{
+    datos = datos_calibracion(catalogo["proveedor"], **{
         "lugar": "Laboratorio del proveedor", "temperatura_ambiente": "20.4", "humedad_relativa": "62",
         "procedimiento": "PRO-C02 Rev.04", "realizado_por": "Técnico del proveedor", "autorizado_por": "Jefa técnica",
         "patrones-TOTAL_FORMS": 3, "patrones-INITIAL_FORMS": 0,
@@ -30,7 +30,7 @@ def test_registrar_datos_del_certificado_y_patrones(cliente_de, tecnico, crear_e
 
 def test_proxima_del_patron_con_formato_aaaa_mm(cliente_de, tecnico, crear_equipo, catalogo):
     e = crear_equipo()
-    datos = datos_calibracion(catalogo["proveedor"], [("100", "100.1")], **{
+    datos = datos_calibracion(catalogo["proveedor"], **{
         "patrones-TOTAL_FORMS": 1, "patrones-INITIAL_FORMS": 0,
         "patrones-0-identificacion": "PCT-15", "patrones-0-proxima_calibracion": "04/2027"})
     r = cliente_de(tecnico).post(f"{reverse('servicios:crear')}?equipo={e.pk}", datos)

@@ -13,7 +13,7 @@
 </div>
 <div class="stack">
   <div class="status-row no-print">
-    <div class="status-box"><small>{% if s.es_calibracion %}Dictamen{% else %}Resultado{% endif %}</small>{{ s|dictamen }}</div>
+    <div class="status-box"><small>Resultado informado</small>{{ s|dictamen }}</div>
     <div class="status-box"><small>{% if s.es_calibracion %}Próxima calibración{% else %}Vigente hasta{% endif %}</small>
       <b>{% if s.es_calibracion %}{{ s.proxima_fecha|date:"Y-m-d"|default:"Sin fecha nueva" }}{% else %}{{ s.vigencia_hasta|date:"Y-m-d" }}{% endif %}</b></div>
     <div class="status-box"><small>Este certificado</small>

@@ -35,8 +35,6 @@
     {% for m in ubicaciones %}<option value="{{ m.pk }}"{% if f.ubicacion == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
   <div class="field"><label for="responsable">Responsable</label><select id="responsable" name="responsable"><option value="">Todos</option>
     {% for m in responsables %}<option value="{{ m.pk }}"{% if f.responsable == m.pk|stringformat:"d" %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
-  <div class="field"><label for="lote">Lote</label><select id="lote" name="lote"><option value="">Todos</option>
-    {% for m in lotes %}<option value="{{ m.pk }}"{% if f.lote == m.pk|stringformat:"d" %} selected{% endif %}>{{ m.codigo }}</option>{% endfor %}</select></div>
   <button class="btn" type="submit">Filtrar</button>
   <a class="btn ghost" href="{% url 'equipos:lista' %}">Limpiar</a>
 </form>
@@ -52,7 +50,7 @@
         <td>{{ e.responsable }}</td>
         <td>{{ e.criticidad|criticidad }}</td>
         <td class="nw">{% if e.proxima %}{{ e.proxima|date:"Y-m-d" }}{% else %}—{% endif %}</td>
-        <td>{{ e.estado_cal|estado_cal }}</td>
+        <td>{{ e.estado_cal|estado_cal }}{{ e.ultimo_resultado|marca_no_conforme }}</td>
       </tr>
     {% empty %}
       <tr><td colspan="7" class="empty">Ningún equipo coincide con los filtros. Prueba con otro código o quita algún filtro.</td></tr>

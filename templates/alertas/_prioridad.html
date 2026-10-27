@@ -4,7 +4,7 @@
     <span class="prio-ico {% if e.estado_cal == 'vencido' %}bad{% else %}warn{% endif %}">{% if e.estado_cal == 'vencido' %}{% icono "i-alert" %}{% else %}{% icono "i-clock" %}{% endif %}</span>
     <div class="prio-main"><b><a class="link" href="{{ e.get_absolute_url }}">{{ e.codigo }}</a> · {{ e.descripcion }}</b>
       <small>{{ e.responsable }} · {{ e.criticidad|criticidad }}{% if e.estado != "en_servicio" %} {{ e|estado_equipo }}{% endif %}</small></div>
-    <div class="prio-when">{% if p.dias is None %}<b class="t-bad">Sin calibración conforme</b>{% else %}<b class="{% if e.estado_cal == 'vencido' %}t-bad{% else %}t-warn{% endif %}">{% if p.dias < 0 %}Venció{% else %}Vence{% endif %} {{ p.dias|relativo }}</b><small>{{ e.proxima|date:"Y-m-d" }}</small>{% endif %}</div>
+    <div class="prio-when">{% if p.dias is None %}<b class="t-bad">Sin fecha de próxima calibración</b>{% else %}<b class="{% if e.estado_cal == 'vencido' %}t-bad{% else %}t-warn{% endif %}">{% if p.dias < 0 %}Venció{% else %}Vence{% endif %} {{ p.dias|relativo }}</b><small>{{ e.proxima|date:"Y-m-d" }}</small>{% endif %}</div>
     {% if user.puede_editar %}<a class="btn sm" href="{% url 'servicios:crear' %}?equipo={{ e.pk }}">{% icono "i-plus" %}<span class="lbl">Registrar</span></a>{% endif %}
   </li>
 {% endwith %}{% empty %}

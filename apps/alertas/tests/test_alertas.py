@@ -15,7 +15,7 @@ def estado_de(equipo, dia=None):
     return con_estado(Equipo.objects.filter(pk=equipo.pk), dia=dia, plazo=30).get().estado_cal
 
 
-def test_estado_segun_la_ultima_calibracion_conforme(crear_equipo, calibrar):
+def test_estado_segun_la_ultima_calibracion(crear_equipo, calibrar):
     e = crear_equipo()
     assert estado_de(e) == Estado.SIN_REGISTRO
     calibrar(e, date(2025, 10, 15))                         # vence el 2026-10-15
@@ -23,14 +23,22 @@ def test_estado_segun_la_ultima_calibracion_conforme(crear_equipo, calibrar):
     assert estado_de(e, date(2026, 10, 16)) == Estado.VENCIDO
     assert estado_de(e, date(2026, 9, 15)) == Estado.POR_VENCER
     assert estado_de(e, date(2026, 9, 14)) == Estado.VIGENTE
-    calibrar(e, date(2026, 10, 10), errores=("0.9", "0", "0"))  # un no apto no da fecha nueva
-    assert estado_de(e, date(2026, 10, 15)) == Estado.POR_VENCER
+    s = calibrar(e, date(2026, 10, 10), resultado="no_conforme")  # el resultado no cambia el estado
+    assert s.proxima_fecha == date(2027, 10, 10)
+    anotado = con_estado(Equipo.objects.filter(pk=e.pk), dia=date(2026, 10, 15), plazo=30).get()
+    assert anotado.estado_cal == Estado.VIGENTE and anotado.ultimo_resultado == "no_conforme"
 
 
-def test_calibrado_pero_nunca_conforme_es_vencido(crear_equipo, calibrar):
+def test_calibracion_sin_resultado_cuenta_por_su_fecha(crear_equipo, calibrar):
     e = crear_equipo()
-    calibrar(e, date(2026, 10, 1), errores=("0.9", "0", "0"))
-    assert estado_de(e, date(2026, 10, 2)) == Estado.VENCIDO
+    calibrar(e, date(2026, 10, 1), resultado="")
+    assert estado_de(e, date(2026, 10, 2)) == Estado.VIGENTE
+
+
+def test_aviso_tambien_para_la_ultima_no_conforme(crear_equipo, calibrar):
+    e = crear_equipo()
+    calibrar(e, date(2024, 1, 1), resultado="no_conforme")
+    assert (e, TipoAviso.VENCIDO) in avisos.pendientes()
 
 
 def test_prioridad_vencidos_primero_y_por_criticidad(crear_equipo, calibrar):

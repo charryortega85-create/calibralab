@@ -7,20 +7,18 @@ from apps.core.archivos import validar_adjunto
 from apps.core.formularios import FechaInput, MotivoMixin
 from apps.equipos.forms import activos_o_actual
 
-from .models import (AnexoServicio, Decision, DecisionNoApto, PatronUtilizado, PuntoMedido, ReglaComparacion, Servicio,
-                     TipoServicio)
+from .models import AnexoServicio, Decision, DecisionNoApto, PatronUtilizado, PuntoMedido, Resultado, Servicio
 
 
 class ServicioForm(MotivoMixin, forms.ModelForm):
     proxima_manual = forms.DateField(
         label="Cambiar la próxima fecha", required=False, widget=FechaInput(),
-        help_text="Déjalo vacío para usar la fecha calculada (última conforme + intervalo).",
+        help_text="Déjalo vacío para usar la fecha calculada (fecha de la calibración + intervalo).",
     )
 
     grupos = [
-        ("Servicio", ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad"], ""),
-        ("Calibración", ["regla", "proxima_manual", "justificacion_proxima"], "calibracion"),
-        ("Calificación, certificación o verificación", ["resultado", "criterios_aceptacion", "vigencia_hasta"], "otro"),
+        ("Calibración", ["fecha", "proveedor", "numero_certificado", "certificado", "resultado", "trazabilidad"], ""),
+        ("Próxima calibración", ["proxima_manual", "justificacion_proxima"], ""),
         ("Datos del certificado", ["lugar", "temperatura_ambiente", "humedad_relativa", "procedimiento",
                                    "realizado_por", "autorizado_por"], "certificado"),
         ("Otros datos", ["ajustes", "observaciones", "motivo"], ""),
@@ -28,25 +26,21 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
 
     class Meta:
         model = Servicio
-        fields = ["tipo", "fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad", "regla",
-                  "justificacion_proxima", "resultado", "criterios_aceptacion", "vigencia_hasta", "lugar",
-                  "temperatura_ambiente", "humedad_relativa", "procedimiento", "realizado_por", "autorizado_por",
-                  "ajustes", "observaciones"]
+        fields = ["fecha", "proveedor", "numero_certificado", "certificado", "trazabilidad", "resultado",
+                  "justificacion_proxima", "lugar", "temperatura_ambiente", "humedad_relativa", "procedimiento",
+                  "realizado_por", "autorizado_por", "ajustes", "observaciones"]
         widgets = {
-            "fecha": FechaInput(), "vigencia_hasta": FechaInput(),
+            "fecha": FechaInput(),
             "ajustes": forms.Textarea(attrs={"rows": 2}), "observaciones": forms.Textarea(attrs={"rows": 2}),
-            "criterios_aceptacion": forms.Textarea(attrs={"rows": 2}),
         }
-        labels = {"resultado": "Resultado (lo registra una persona)"}
+        labels = {"resultado": "Resultado informado en el certificado"}
 
     def __init__(self, *args, equipo=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.equipo = equipo
         self.fields["proveedor"].queryset = activos_o_actual(Proveedor.objects.all(), self.instance.proveedor_id)
-        self.fields["regla"].required = False  # solo se usa en calibraciones
-        self.fields["vigencia_hasta"].help_text = "En una verificación intermedia es opcional."
+        self.fields["resultado"].choices = [("", "El certificado no lo declara"), *Resultado.choices]
         if self.instance.pk:
-            self.fields["tipo"].disabled = True
             if self.instance.proxima_fecha and self.instance.proxima_fecha != self.instance.proxima_fecha_calculada:
                 self.initial["proxima_manual"] = self.instance.proxima_fecha
 
@@ -61,26 +55,13 @@ class ServicioForm(MotivoMixin, forms.ModelForm):
 
     def clean(self):
         d = super().clean()
-        tipo = d.get("tipo") or self.instance.tipo
-        d["regla"] = d.get("regla") or ReglaComparacion.SIMPLE
-        if tipo == TipoServicio.CALIBRACION:
-            # RN-08: proveedor, n.º de certificado y archivo son obligatorios en una calibración.
-            if not d.get("certificado") and not self.instance.certificado:
-                self.add_error("certificado", "En una calibración el archivo del certificado es obligatorio (RN-08).")
-            if d.get("proxima_manual") and not d.get("justificacion_proxima", "").strip():
-                self.add_error("justificacion_proxima", "Para cambiar la próxima fecha escribe la justificación (RN-02).")
-            if d.get("proxima_manual") and d.get("fecha") and d["proxima_manual"] <= d["fecha"]:
-                self.add_error("proxima_manual", "La próxima fecha debe ser posterior a la fecha de ejecución.")
-            d["resultado"] = self.instance.resultado or ""
-            d["vigencia_hasta"] = None
-        else:
-            if not d.get("resultado"):
-                self.add_error("resultado", "Indica si el resultado fue conforme o no conforme (RF-20).")
-            if not d.get("vigencia_hasta") and tipo != TipoServicio.VERIFICACION:
-                self.add_error("vigencia_hasta", "Indica hasta cuándo es válida (RF-20).")
-            elif d.get("vigencia_hasta") and d.get("fecha") and d["vigencia_hasta"] <= d["fecha"]:
-                self.add_error("vigencia_hasta", "La vigencia debe terminar después de la fecha de ejecución.")
-            d["proxima_manual"] = None
+        # RN-08: proveedor, n.º de certificado y archivo son obligatorios en una calibración.
+        if not d.get("certificado") and not self.instance.certificado:
+            self.add_error("certificado", "En una calibración el archivo del certificado es obligatorio (RN-08).")
+        if d.get("proxima_manual") and not d.get("justificacion_proxima", "").strip():
+            self.add_error("justificacion_proxima", "Para cambiar la próxima fecha escribe la justificación (RN-02).")
+        if d.get("proxima_manual") and d.get("fecha") and d["proxima_manual"] <= d["fecha"]:
+            self.add_error("proxima_manual", "La próxima fecha debe ser posterior a la fecha de ejecución.")
         return d
 
     def grupos_de_campos(self):

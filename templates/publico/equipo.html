@@ -10,7 +10,7 @@
 
 <div class="status-row">
   <div class="status-box"><small>Estado de calibración</small>{{ e.estado_cal|estado_cal }}
-    <span class="sub">{% if e.proxima %}Próxima calibración: <b>{{ e.proxima|date:"Y-m-d" }}</b> ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin calibración conforme{% endif %}</span></div>
+    <span class="sub">{% if e.proxima %}Próxima calibración: <b>{{ e.proxima|date:"Y-m-d" }}</b> ({{ dias|relativo }}){% elif e.estado_cal == "sin_registro" %}Nunca fue calibrado{% else %}Sin fecha de próxima calibración{% endif %}</span></div>
   <div class="status-box"><small>Estado actual</small>{{ e|estado_equipo }}</div>
 </div>
 
