@@ -1,7 +1,8 @@
 """
 Carga los datos inventados de la demostración: los 36 equipos de la maqueta del panel, con su
-último servicio, puntos de calibración, un no apto con su decisión, mantenimientos, lotes y plan.
-Todos los datos son de ejemplo (II.1.7). Se puede ejecutar más de una vez: no duplica nada.
+última calibración tal como la informa el proveedor (conforme, no conforme o sin dictamen) y los
+puntos a calibrar en los equipos que los necesitan. Todos los datos son de ejemplo (II.1.7).
+Se puede ejecutar más de una vez: no duplica nada.
 """
 from datetime import date, datetime, time
 from decimal import Decimal as D
@@ -17,11 +18,7 @@ from apps.alertas.models import Aviso, ResultadoEnvio, TipoAviso
 from apps.catalogos.models import Area, Laboratorio, Marca, Proveedor, Ubicacion, Unidad
 from apps.cuentas.models import Usuario
 from apps.equipos.models import Criticidad, Equipo, EstadoEquipo, PuntoCalibracion, TipoEMP
-from apps.mantenimiento.models import Conclusion, EvaluacionEfecto, Novedad, PlanMantenimiento, TipoNovedad
-from apps.plan.models import EstadoEjecucion, EstadoPago, ItemPlan, Lote, PlanAnual
-from apps.servicios.calculos import sumar_meses
-from apps.servicios.models import (Decision, DecisionNoApto, PatronUtilizado, PuntoMedido, Resultado, Servicio,
-                                   TipoServicio)
+from apps.servicios.models import PatronUtilizado, Resultado, Servicio, TipoServicio
 
 RESPONSABLES = {"mp": "mperez", "lg": "lgimenez", "cb": "cbenitez", "ad": "aduarte"}
 
@@ -45,7 +42,7 @@ def area(laboratorio, nombre):
     return Area.objects.get_or_create(laboratorio=lab, nombre=nombre)[0]
 
 # [código, equipo, marca, modelo, ubicación, criticidad, responsable, estado, intervalo, fecha, resultado,
-#  tipo, proveedor, certificado, última conforme (si el último fue no conforme)]  — igual que la maqueta
+#  tipo, proveedor, certificado, calibración anterior (si la última fue no conforme)], como en la maqueta
 DATOS = [
     ["EQ-0001", "Balanza de precisión 1000 g", "Marca A", "B-1000", "Sala de balanzas", "Alta", "mp", "En servicio", 12, "2026-03-09", "Conforme", "Calibración", "Proveedor Y", "CC-2026-0187"],
     ["EQ-0002", "Termómetro digital", "Marca B", "T-200", "Lab. de química", "Media", "mp", "Fuera de servicio", 12, "2026-09-14", "No conforme", "Calibración", "Proveedor X", "CC-2026-0407", "2025-09-10"],
@@ -72,7 +69,7 @@ DATOS = [
     ["EQ-0023", "Mufla 1100 °C", "Marca B", "MF-11", "Sala de instrumentos", "Alta", "ad", "En reparación", 12, "2025-07-21", "Conforme", "Calibración", "Proveedor X", "CC-2025-0377"],
     ["EQ-0024", "Calibre pie de rey digital", "Marca J", "CP-150", "Sala de metrología", "Baja", "cb", "En servicio", 12, "2026-01-27", "Conforme", "Calibración", "Proveedor Y", "CC-2026-0049"],
     ["EQ-0025", "Micrómetro de exteriores", "Marca J", "MI-25", "Sala de metrología", "Baja", "cb", "En servicio", 12, "2026-02-03", "Conforme", "Calibración", "Proveedor Y", "CC-2026-0063"],
-    ["EQ-0026", "Microscopio binocular", "Marca K", "MB-400", "Lab. de microbiología", "Media", "ad", "En servicio", 24, "2026-06-02", "Conforme", "Calibración", "Proveedor Z", "CC-2026-0318"],
+    ["EQ-0026", "Microscopio binocular", "Marca K", "MB-400", "Lab. de microbiología", "Media", "ad", "En servicio", 24, "2026-06-02", "Sin dictamen", "Calibración", "Proveedor Z", "CC-2026-0318"],
     ["EQ-0027", "Cabina de bioseguridad clase II", "Marca F", "CB-2", "Lab. de microbiología", "Alta", "ad", "En servicio", 12, "2026-10-02", "Conforme", "Certificación", "Proveedor Z", "CE-2026-0017"],
     ["EQ-0028", "Termohigrómetro de ambiente", "Marca A", "TH-10", "Sala de balanzas", "Baja", "mp", "En servicio", 12, "2026-09-17", "Conforme", "Calibración", "Proveedor X", "CC-2026-0419"],
     ["EQ-0029", "Cámara fría 2–8 °C", "Marca H", "CF-2", "Lab. de microbiología", "Alta", "cb", "En servicio", 12, "2026-08-12", "Conforme", "Calificación", "Proveedor Z", "CQ-2026-0038"],
@@ -116,7 +113,11 @@ PERFILES = [
     ("Cabina", "m/s", "velocidad del aire", (0, 2, "0.01", None), [(0.4, F, "0.05")]),
 ]
 GENERICO = ("ud", "otra", (None, None, None, None), [(1, PL, "2")])
-# Errores leídos en cada punto, como fracción del EMP (mismos datos cada vez: la demo es reproducible)
+# Los puntos a calibrar son opcionales: el técnico los define solo en estos tipos de equipo.
+CON_PUNTOS = ("Balanza", "masas patrón", "Micropipeta", "Pipeta", "Termómetro", "Termohigrómetro", "Manómetro",
+              "pH-metro")
+RESULTADOS = {"Conforme": Resultado.CONFORME, "No conforme": Resultado.NO_CONFORME, "Sin dictamen": ""}
+# Errores del certificado de ejemplo en cada punto, como fracción del EMP (la demo es reproducible)
 FRACCIONES = [D("0.4"), D("-0.6"), D("0.8")]
 
 
@@ -125,6 +126,19 @@ def perfil(descripcion):
         if clave.lower() in descripcion.lower():
             return resto
     return list(GENERICO)
+
+
+def filas_de_ejemplo(s):
+    """Valores por punto que muestra el PDF de ejemplo, inventados a partir de los puntos de la ficha."""
+    filas = []
+    for i, p in enumerate(s.equipo.puntos.filter(activo=True), start=1):
+        emp = p.emp_valor if p.emp_tipo == TipoEMP.FIJO else (
+            p.valor_nominal * p.emp_valor / 100 if p.emp_tipo == TipoEMP.PCT_LECTURA else s.equipo.capacidad * p.emp_valor / 100)
+        fraccion = (D("1.6") if i == 1 else D("0.5")) if s.resultado == Resultado.NO_CONFORME else FRACCIONES[(i - 1) % 3]
+        error = (emp * fraccion).quantize(D("0.000001"))
+        filas.append({"referencia": p.valor_nominal, "leido": p.valor_nominal + error, "error": error,
+                      "incertidumbre": (emp / 4).quantize(D("0.000001"))})
+    return filas
 
 
 def fecha(texto):
@@ -144,7 +158,7 @@ PATRONES = {
 
 
 class Command(BaseCommand):
-    help = "Carga los datos de ejemplo de la maqueta (equipos, servicios, mantenimiento, lotes y plan)."
+    help = "Carga los datos de ejemplo de la maqueta (equipos y calibraciones)."
 
     def add_arguments(self, parser):
         parser.add_argument("--sin-archivos", action="store_true",
@@ -171,11 +185,9 @@ class Command(BaseCommand):
             Usuario.objects.get(username=usuario).areas.set([area(*a) for a in areas])
         Usuario.objects.get(username="aduarte").laboratorios.set(
             [Laboratorio.objects.get(nombre="Laboratorio Fisicoquímico")])
-        self.extras(equipos)
-        self.plan(equipos)
         self.avisos()
         self.datos_certificados(generar_pdf=not sin_archivos)
-        self.stdout.write(self.style.SUCCESS(f"Listo: {len(equipos)} equipos, {Servicio.objects.count()} servicios."))
+        self.stdout.write(self.style.SUCCESS(f"Listo: {len(equipos)} equipos, {Servicio.objects.count()} calibraciones."))
 
     # ---------------------------------------------------------------------------------------------------
     def equipo(self, fila):
@@ -190,99 +202,38 @@ class Command(BaseCommand):
             rango_min=rmin, rango_max=rmax, resolucion=D(res) if res else None, capacidad=cap,
             criticidad=Criticidad(crit.lower()), intervalo_meses=intervalo,
         )
+        if not any(clave.lower() in desc.lower() for clave in CON_PUNTOS):
+            puntos = []
         for i, (nominal, tipo, emp) in enumerate(puntos, start=1):
             PuntoCalibracion.objects.create(equipo=e, orden=i, valor_nominal=D(str(nominal)), emp_tipo=tipo, emp_valor=D(emp))
         if f_ult is None:
             return e
         resultado, tipo, proveedor, cert = fila[10:14]
         proveedor = Proveedor.objects.get(nombre=proveedor)
+        if tipo != "Calibración":
+            # Calificaciones y certificaciones quedan fuera del alcance: se registra la calibración del sensor.
+            cert = cert.replace("CQ", "CC").replace("CE", "CC")
         if resultado == "No conforme":
-            anterior = self.calibrar(e, fecha(fila[14]), proveedor, f"CC-{fila[14][:4]}-0{codigo[-3:]}", apto=True)
-            s = self.calibrar(e, fecha(f_ult), proveedor, cert, apto=False)
-            d = DecisionNoApto.objects.create(servicio=s, decision=Decision.FUERA_DE_SERVICIO, decidido_por=self.admin,
-                                              fuera_tolerancia_desde=anterior.fecha)
-            e.cambiar_estado(EstadoEquipo.FUERA_DE_SERVICIO, f"Calibración no apta {cert}", self.admin, s.fecha)
-            EvaluacionEfecto.objects.create(
-                servicio=s, desde=d.fuera_tolerancia_desde, hasta=s.fecha, conclusion=Conclusion.SIN_EFECTO,
-                resultados_revisados="Se revisaron los registros de temperatura de los ensayos del período: el error "
-                                     "en 0 °C no afecta a los ensayos, que se hacen entre 20 y 40 °C.",
-                evaluado_por=self.admin, fecha=s.fecha)
+            self.calibrar(e, fecha(fila[14]), proveedor, f"CC-{fila[14][:4]}-0{codigo[-3:]}", Resultado.CONFORME)
+            s = self.calibrar(e, fecha(f_ult), proveedor, cert, Resultado.NO_CONFORME)
+            # El sistema solo avisa; una persona decide sacar el equipo de servicio.
+            e.cambiar_estado(EstadoEquipo.FUERA_DE_SERVICIO,
+                             f"Certificado {cert} no conforme: la sonda quedó doblada",
+                             self.admin, s.fecha)
         else:
-            # Calificaciones y certificaciones: se calibra además el sensor en la misma visita.
-            self.calibrar(e, fecha(f_ult), proveedor, cert if tipo == "Calibración" else cert.replace("CQ", "CC").replace("CE", "CC"),
-                          apto=True)
-            if tipo != "Calibración":
-                Servicio.objects.create(
-                    equipo=e, tipo=TipoServicio.CALIFICACION if tipo == "Calificación" else TipoServicio.CERTIFICACION,
-                    fecha=fecha(f_ult), proveedor=proveedor, numero_certificado=cert, resultado=Resultado.CONFORME,
-                    criterios_aceptacion="Uniformidad y estabilidad dentro de la especificación del fabricante.",
-                    vigencia_hasta=sumar_meses(fecha(f_ult), intervalo), registrado_por=self.usuarios[resp])
+            self.calibrar(e, fecha(f_ult), proveedor, cert, RESULTADOS[resultado])
         if estado == "En reparación":
             e.cambiar_estado(EstadoEquipo.EN_REPARACION, "Falla en la resistencia; enviado al servicio técnico",
                              self.usuarios[resp], date(2026, 10, 1))
         return e
 
-    def calibrar(self, e, dia, proveedor, cert, apto):
-        s = Servicio.objects.create(equipo=e, tipo=TipoServicio.CALIBRACION, fecha=dia, proveedor=proveedor,
-                                    numero_certificado=cert, trazabilidad="Patrones con trazabilidad al SI (INTN)",
-                                    registrado_por=e.responsable)
-        for i, p in enumerate(e.puntos.all(), start=1):
-            emp = p.emp_valor if p.emp_tipo == TipoEMP.FIJO else (
-                p.valor_nominal * p.emp_valor / 100 if p.emp_tipo == TipoEMP.PCT_LECTURA else e.capacidad * p.emp_valor / 100)
-            fraccion = FRACCIONES[(i - 1) % 3] if apto else (D("1.6") if i == 1 else D("0.5"))
-            PuntoMedido.objects.create(servicio=s, orden=i, valor_referencia=p.valor_nominal,
-                                       valor_leido=p.valor_nominal + (emp * fraccion).quantize(D("0.000001")),
-                                       incertidumbre=(emp / 4).quantize(D("0.000001")),
-                                       emp_tipo=p.emp_tipo, emp_valor=p.emp_valor)
-        s.recalcular()
+    def calibrar(self, e, dia, proveedor, cert, resultado):
+        s = Servicio(equipo=e, tipo=TipoServicio.CALIBRACION, fecha=dia, proveedor=proveedor, numero_certificado=cert,
+                     resultado=resultado, trazabilidad="Patrones con trazabilidad al SI (INTN)",
+                     registrado_por=e.responsable)
+        s.calcular_proxima_fecha()
+        s.save()
         return s
-
-    def extras(self, eq):
-        mp, lg, cb, ad = (self.usuarios[k] for k in ("mp", "lg", "cb", "ad"))
-        # Mantenimiento (RF-34)
-        t1 = PlanMantenimiento.objects.create(equipo=eq["EQ-0001"], actividad="Verificación intermedia con masa patrón de 500 g",
-                                              frecuencia_meses=1, responsable=mp)
-        t2 = PlanMantenimiento.objects.create(equipo=eq["EQ-0011"], actividad="Prueba de Bowie-Dick y limpieza de cámara",
-                                              frecuencia_meses=1, responsable=cb)
-        PlanMantenimiento.objects.create(equipo=eq["EQ-0003"], actividad="Limpieza y revisión de rotor",
-                                         frecuencia_meses=6, responsable=mp)
-        Novedad.objects.create(equipo=eq["EQ-0001"], tipo=TipoNovedad.VERIFICACION, fecha=date(2026, 9, 8), plan=t1,
-                               descripcion="Verificación con masa de 500 g: lectura 500,02 g.", resultado="Dentro del EMP", responsable=mp)
-        Novedad.objects.create(equipo=eq["EQ-0011"], tipo=TipoNovedad.MANTENIMIENTO, fecha=date(2026, 9, 30), plan=t2,
-                               descripcion="Bowie-Dick conforme. Limpieza de cámara y cambio de junta.", responsable=cb)
-        Novedad.objects.create(equipo=eq["EQ-0023"], tipo=TipoNovedad.FALLA, fecha=date(2026, 10, 1),
-                               descripcion="No alcanza la temperatura de 900 °C. Se sospecha de la resistencia.",
-                               resultado="Enviada al servicio técnico", responsable=ad)
-        Novedad.objects.create(equipo=eq["EQ-0002"], tipo=TipoNovedad.DANO, fecha=date(2026, 9, 10),
-                               descripcion="Se cayó de la mesada; la sonda quedó doblada.", responsable=mp)
-
-    def plan(self, eq):
-        y, z, x = (Proveedor.objects.get(nombre=n) for n in ("Proveedor Y", "Proveedor Z", "Proveedor X"))
-        lotes = [
-            ("L-01", "Balanzas y masas", "Calibración en sitio de balanzas y juego de masas F2.", y, 4_500_000,
-             ["EQ-0001", "EQ-0004", "EQ-0017"]),
-            ("L-02", "Volumen", "Calibración gravimétrica de micropipetas y pipetas.", z, 2_800_000,
-             ["EQ-0007", "EQ-0013", "EQ-0019"]),
-            ("L-03", "Temperatura", "Calibración de termómetros, estufas y baños; calificación térmica.", x, 6_200_000,
-             ["EQ-0002", "EQ-0006", "EQ-0008", "EQ-0012", "EQ-0016", "EQ-0023", "EQ-0028", "EQ-0029"]),
-            ("L-04", "Química analítica", "pH-metro, conductímetro, turbidímetro, refractómetro y titulador.", y, 5_100_000,
-             ["EQ-0014", "EQ-0015", "EQ-0020", "EQ-0021", "EQ-0022", "EQ-0033"]),
-        ]
-        objs = {}
-        for codigo, nombre, trabajos, prov, costo, cods in lotes:
-            lote = Lote.objects.create(codigo=codigo, nombre=nombre, trabajos=trabajos, proveedor=prov, costo_estimado=costo)
-            lote.equipos.set([eq[c] for c in cods])
-            objs[codigo] = lote
-        plan = PlanAnual.objects.create(ejercicio=2026, descripcion="Programa de calibración 2026")
-        for codigo, mes, monto, est, pago, pagado, f_ej, nota in [
-            ("L-01", 3, 4_500_000, EstadoEjecucion.EJECUTADO, EstadoPago.PAGADO, 4_350_000, date(2026, 3, 9), "NR-2026-014"),
-            ("L-02", 8, 2_800_000, EstadoEjecucion.EJECUTADO, EstadoPago.PENDIENTE, 0, date(2026, 8, 26), "NR-2026-051"),
-            ("L-03", 9, 6_200_000, EstadoEjecucion.EN_EJECUCION, EstadoPago.PENDIENTE, 0, None, "NR-2026-063"),
-            ("L-04", 11, 5_100_000, EstadoEjecucion.PROGRAMADO, EstadoPago.PENDIENTE, 0, None, ""),
-        ]:
-            ItemPlan.objects.create(plan=plan, lote=objs[codigo], mes_previsto=mes, monto_previsto=monto,
-                                    proveedor=objs[codigo].proveedor, estado_ejecucion=est, estado_pago=pago,
-                                    monto_pagado=pagado, fecha_ejecucion=f_ej, nota_requerimiento=nota)
 
     def avisos(self):
         """Envía los avisos del día con un buzón de prueba y deja uno con error, como en la maqueta (RF-28)."""
@@ -323,5 +274,6 @@ class Command(BaseCommand):
             if generar_pdf:
                 from weasyprint import HTML
 
-                pdf = HTML(string=render_to_string("core/certificado_ejemplo.html", {"s": s})).write_pdf()
+                html = render_to_string("core/certificado_ejemplo.html", {"s": s, "filas": filas_de_ejemplo(s)})
+                pdf = HTML(string=html).write_pdf()
                 s.certificado.save(f"{s.numero_certificado}.pdf", ContentFile(pdf), save=True)
